@@ -180,6 +180,9 @@ function RootComponent() {
       m.capturerProvenance();
       m.chargerPixel();
     });
+    // Même raison pour le parrainage : un membre partage volontiers son
+    // lien vers un article ou la page tarifs, pas seulement l'accueil.
+    import("@/lib/parrainage").then(m => m.capturerParrain());
   }, []);
 
   return (

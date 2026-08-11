@@ -380,6 +380,12 @@ function OnboardingPage() {
         //
         // Import dynamique : le suivi publicitaire ne doit pas alourdir
         // le fragment servi à chaque visiteur.
+        // Le parrain est rattaché ici, et nulle part ailleurs. Le lien
+        // filleul → parrain se pose une seule fois, à la naissance du
+        // compte : plus tard, n'importe qui pourrait se faire attribuer
+        // un membre déjà inscrit.
+        import("@/lib/parrainage").then(m => m.rattacherParrain());
+
         import("@/lib/meta").then(async m => {
           await m.rattacherProvenance();
           await m.suivreMeta("CompleteRegistration");

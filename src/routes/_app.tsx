@@ -1,5 +1,6 @@
 import { createFileRoute, Outlet, Link, useNavigate } from "@tanstack/react-router";
 import { BottomNav } from "@/components/app/BottomNav";
+import { MenuParrainage } from "@/components/app/MenuParrainage";
 import { Bell, Crown, Rocket, Shield, User } from "lucide-react";
 import {
   BOOST_DURATION_MIN,
@@ -449,7 +450,12 @@ function AppLayout() {
                       <span className="font-medium">Abonnement & Facturation</span>
                     </Link>
                   </DropdownMenuItem>
-                  
+
+                  {/* Juste après l'abonnement : c'est là que le membre a
+                      l'argent en tête. N'apparaît que si le programme
+                      est ouvert ET qu'il y a droit. */}
+                  <MenuParrainage />
+
                   <DropdownMenuSeparator className="bg-border/50 mt-2 mb-2" />
                   <DropdownMenuLabel className="px-2 py-1.5 text-xs text-muted-foreground font-medium uppercase tracking-wider">
                     Paramètres

@@ -29,9 +29,11 @@ import { Route as AppDecouvrirRouteImport } from './routes/_app.decouvrir'
 import { Route as AppDemandesRouteImport } from './routes/_app.demandes'
 import { Route as AppGuideRouteImport } from './routes/_app.guide'
 import { Route as AppMessagesRouteImport } from './routes/_app.messages'
+import { Route as AppParrainageRouteImport } from './routes/_app.parrainage'
 import { Route as AppProfilRouteImport } from './routes/_app.profil'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AdminAbonnementsRouteImport } from './routes/admin.abonnements'
+import { Route as AdminAffiliationRouteImport } from './routes/admin.affiliation'
 import { Route as AdminAnalyticsRouteImport } from './routes/admin.analytics'
 import { Route as AdminContenusRouteImport } from './routes/admin.contenus'
 import { Route as AdminEquipeRouteImport } from './routes/admin.equipe'
@@ -148,6 +150,11 @@ const AppMessagesRoute = AppMessagesRouteImport.update({
   path: '/messages',
   getParentRoute: () => AppRoute,
 } as any)
+const AppParrainageRoute = AppParrainageRouteImport.update({
+  id: '/parrainage',
+  path: '/parrainage',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppProfilRoute = AppProfilRouteImport.update({
   id: '/profil',
   path: '/profil',
@@ -161,6 +168,11 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
 const AdminAbonnementsRoute = AdminAbonnementsRouteImport.update({
   id: '/abonnements',
   path: '/abonnements',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminAffiliationRoute = AdminAffiliationRouteImport.update({
+  id: '/affiliation',
+  path: '/affiliation',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminAnalyticsRoute = AdminAnalyticsRouteImport.update({
@@ -265,8 +277,10 @@ export interface FileRoutesByFullPath {
   '/demandes': typeof AppDemandesRoute
   '/guide': typeof AppGuideRoute
   '/messages': typeof AppMessagesRoute
+  '/parrainage': typeof AppParrainageRoute
   '/profil': typeof AppProfilRoute
   '/admin/abonnements': typeof AdminAbonnementsRoute
+  '/admin/affiliation': typeof AdminAffiliationRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/contenus': typeof AdminContenusRoute
   '/admin/equipe': typeof AdminEquipeRoute
@@ -304,8 +318,10 @@ export interface FileRoutesByTo {
   '/demandes': typeof AppDemandesRoute
   '/guide': typeof AppGuideRoute
   '/messages': typeof AppMessagesRoute
+  '/parrainage': typeof AppParrainageRoute
   '/profil': typeof AppProfilRoute
   '/admin/abonnements': typeof AdminAbonnementsRoute
+  '/admin/affiliation': typeof AdminAffiliationRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/contenus': typeof AdminContenusRoute
   '/admin/equipe': typeof AdminEquipeRoute
@@ -346,8 +362,10 @@ export interface FileRoutesById {
   '/_app/demandes': typeof AppDemandesRoute
   '/_app/guide': typeof AppGuideRoute
   '/_app/messages': typeof AppMessagesRoute
+  '/_app/parrainage': typeof AppParrainageRoute
   '/_app/profil': typeof AppProfilRoute
   '/admin/abonnements': typeof AdminAbonnementsRoute
+  '/admin/affiliation': typeof AdminAffiliationRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/contenus': typeof AdminContenusRoute
   '/admin/equipe': typeof AdminEquipeRoute
@@ -388,8 +406,10 @@ export interface FileRouteTypes {
     | '/demandes'
     | '/guide'
     | '/messages'
+    | '/parrainage'
     | '/profil'
     | '/admin/abonnements'
+    | '/admin/affiliation'
     | '/admin/analytics'
     | '/admin/contenus'
     | '/admin/equipe'
@@ -427,8 +447,10 @@ export interface FileRouteTypes {
     | '/demandes'
     | '/guide'
     | '/messages'
+    | '/parrainage'
     | '/profil'
     | '/admin/abonnements'
+    | '/admin/affiliation'
     | '/admin/analytics'
     | '/admin/contenus'
     | '/admin/equipe'
@@ -468,8 +490,10 @@ export interface FileRouteTypes {
     | '/_app/demandes'
     | '/_app/guide'
     | '/_app/messages'
+    | '/_app/parrainage'
     | '/_app/profil'
     | '/admin/abonnements'
+    | '/admin/affiliation'
     | '/admin/analytics'
     | '/admin/contenus'
     | '/admin/equipe'
@@ -649,6 +673,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppMessagesRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/parrainage': {
+      id: '/_app/parrainage'
+      path: '/parrainage'
+      fullPath: '/parrainage'
+      preLoaderRoute: typeof AppParrainageRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/profil': {
       id: '/_app/profil'
       path: '/profil'
@@ -668,6 +699,13 @@ declare module '@tanstack/react-router' {
       path: '/abonnements'
       fullPath: '/admin/abonnements'
       preLoaderRoute: typeof AdminAbonnementsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/affiliation': {
+      id: '/admin/affiliation'
+      path: '/affiliation'
+      fullPath: '/admin/affiliation'
+      preLoaderRoute: typeof AdminAffiliationRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/analytics': {
@@ -794,6 +832,7 @@ interface AppRouteChildren {
   AppDemandesRoute: typeof AppDemandesRoute
   AppGuideRoute: typeof AppGuideRoute
   AppMessagesRoute: typeof AppMessagesRoute
+  AppParrainageRoute: typeof AppParrainageRoute
   AppProfilRoute: typeof AppProfilRoute
   AppParametresBloquesRoute: typeof AppParametresBloquesRoute
   AppParametresLangueRoute: typeof AppParametresLangueRoute
@@ -810,6 +849,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppDemandesRoute: AppDemandesRoute,
   AppGuideRoute: AppGuideRoute,
   AppMessagesRoute: AppMessagesRoute,
+  AppParrainageRoute: AppParrainageRoute,
   AppProfilRoute: AppProfilRoute,
   AppParametresBloquesRoute: AppParametresBloquesRoute,
   AppParametresLangueRoute: AppParametresLangueRoute,
@@ -821,6 +861,7 @@ const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
 interface AdminRouteChildren {
   AdminAbonnementsRoute: typeof AdminAbonnementsRoute
+  AdminAffiliationRoute: typeof AdminAffiliationRoute
   AdminAnalyticsRoute: typeof AdminAnalyticsRoute
   AdminContenusRoute: typeof AdminContenusRoute
   AdminEquipeRoute: typeof AdminEquipeRoute
@@ -835,6 +876,7 @@ interface AdminRouteChildren {
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminAbonnementsRoute: AdminAbonnementsRoute,
+  AdminAffiliationRoute: AdminAffiliationRoute,
   AdminAnalyticsRoute: AdminAnalyticsRoute,
   AdminContenusRoute: AdminContenusRoute,
   AdminEquipeRoute: AdminEquipeRoute,

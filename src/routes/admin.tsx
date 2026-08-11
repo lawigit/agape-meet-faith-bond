@@ -1,5 +1,5 @@
 import { createFileRoute, Outlet, Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, Users, ShieldAlert, CreditCard, Megaphone, Settings, LogOut, BarChart3, LifeBuoy, FileText, UsersRound, Radio } from "lucide-react";
+import { LayoutDashboard, Users, ShieldAlert, CreditCard, Megaphone, Settings, LogOut, BarChart3, LifeBuoy, FileText, UsersRound, Radio, Gift } from "lucide-react";
 import { fetchMyPermissions, ROLE_LABELS, type MyPermissions, type Permission } from "@/lib/permissions";
 import logo from "@/assets/logo.png";
 import { supabase } from "@/lib/supabase";
@@ -35,6 +35,10 @@ const adminMenus: {
   // module autonome, avec sa propre navigation interne.
   { to: "/admin/meta-ads", label: "Meta Ads", icon: Radio, perm: "reglages" },
   { to: "/admin/marketing", label: "Marketing", icon: Megaphone, perm: "reglages" },
+  // Sous « finances » et non « reglages » : le module engage des
+  // versements réels, et la file des retraits doit rester entre les
+  // mains de qui gère déjà l'argent.
+  { to: "/admin/affiliation", label: "Parrainage", icon: Gift, perm: "finances" },
   { to: "/admin/equipe", label: "Équipe", icon: UsersRound, perm: "equipe" },
   { to: "/admin/parametres", label: "Paramètres", icon: Settings, perm: "reglages" },
 ];
