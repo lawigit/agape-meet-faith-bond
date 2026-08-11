@@ -33,7 +33,6 @@ import { Route as AppParrainageRouteImport } from './routes/_app.parrainage'
 import { Route as AppProfilRouteImport } from './routes/_app.profil'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AdminAbonnementsRouteImport } from './routes/admin.abonnements'
-import { Route as AdminAffiliationRouteImport } from './routes/admin.affiliation'
 import { Route as AdminAnalyticsRouteImport } from './routes/admin.analytics'
 import { Route as AdminContenusRouteImport } from './routes/admin.contenus'
 import { Route as AdminEquipeRouteImport } from './routes/admin.equipe'
@@ -41,6 +40,7 @@ import { Route as AdminMarketingRouteImport } from './routes/admin.marketing'
 import { Route as AdminMetaAdsRouteImport } from './routes/admin.meta-ads'
 import { Route as AdminModerationRouteImport } from './routes/admin.moderation'
 import { Route as AdminParametresRouteImport } from './routes/admin.parametres'
+import { Route as AdminParrainageRouteImport } from './routes/admin.parrainage'
 import { Route as AdminSupportRouteImport } from './routes/admin.support'
 import { Route as AdminUtilisateursRouteImport } from './routes/admin.utilisateurs'
 import { Route as BlogIndexRouteImport } from './routes/blog.index'
@@ -170,11 +170,6 @@ const AdminAbonnementsRoute = AdminAbonnementsRouteImport.update({
   path: '/abonnements',
   getParentRoute: () => AdminRoute,
 } as any)
-const AdminAffiliationRoute = AdminAffiliationRouteImport.update({
-  id: '/affiliation',
-  path: '/affiliation',
-  getParentRoute: () => AdminRoute,
-} as any)
 const AdminAnalyticsRoute = AdminAnalyticsRouteImport.update({
   id: '/analytics',
   path: '/analytics',
@@ -208,6 +203,11 @@ const AdminModerationRoute = AdminModerationRouteImport.update({
 const AdminParametresRoute = AdminParametresRouteImport.update({
   id: '/parametres',
   path: '/parametres',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminParrainageRoute = AdminParrainageRouteImport.update({
+  id: '/parrainage',
+  path: '/parrainage',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminSupportRoute = AdminSupportRouteImport.update({
@@ -280,7 +280,6 @@ export interface FileRoutesByFullPath {
   '/parrainage': typeof AppParrainageRoute
   '/profil': typeof AppProfilRoute
   '/admin/abonnements': typeof AdminAbonnementsRoute
-  '/admin/affiliation': typeof AdminAffiliationRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/contenus': typeof AdminContenusRoute
   '/admin/equipe': typeof AdminEquipeRoute
@@ -288,6 +287,7 @@ export interface FileRoutesByFullPath {
   '/admin/meta-ads': typeof AdminMetaAdsRoute
   '/admin/moderation': typeof AdminModerationRoute
   '/admin/parametres': typeof AdminParametresRoute
+  '/admin/parrainage': typeof AdminParrainageRoute
   '/admin/support': typeof AdminSupportRoute
   '/admin/utilisateurs': typeof AdminUtilisateursRoute
   '/blog/$slug': typeof BlogSlugRoute
@@ -321,7 +321,6 @@ export interface FileRoutesByTo {
   '/parrainage': typeof AppParrainageRoute
   '/profil': typeof AppProfilRoute
   '/admin/abonnements': typeof AdminAbonnementsRoute
-  '/admin/affiliation': typeof AdminAffiliationRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/contenus': typeof AdminContenusRoute
   '/admin/equipe': typeof AdminEquipeRoute
@@ -329,6 +328,7 @@ export interface FileRoutesByTo {
   '/admin/meta-ads': typeof AdminMetaAdsRoute
   '/admin/moderation': typeof AdminModerationRoute
   '/admin/parametres': typeof AdminParametresRoute
+  '/admin/parrainage': typeof AdminParrainageRoute
   '/admin/support': typeof AdminSupportRoute
   '/admin/utilisateurs': typeof AdminUtilisateursRoute
   '/blog/$slug': typeof BlogSlugRoute
@@ -365,7 +365,6 @@ export interface FileRoutesById {
   '/_app/parrainage': typeof AppParrainageRoute
   '/_app/profil': typeof AppProfilRoute
   '/admin/abonnements': typeof AdminAbonnementsRoute
-  '/admin/affiliation': typeof AdminAffiliationRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/contenus': typeof AdminContenusRoute
   '/admin/equipe': typeof AdminEquipeRoute
@@ -373,6 +372,7 @@ export interface FileRoutesById {
   '/admin/meta-ads': typeof AdminMetaAdsRoute
   '/admin/moderation': typeof AdminModerationRoute
   '/admin/parametres': typeof AdminParametresRoute
+  '/admin/parrainage': typeof AdminParrainageRoute
   '/admin/support': typeof AdminSupportRoute
   '/admin/utilisateurs': typeof AdminUtilisateursRoute
   '/blog/$slug': typeof BlogSlugRoute
@@ -409,7 +409,6 @@ export interface FileRouteTypes {
     | '/parrainage'
     | '/profil'
     | '/admin/abonnements'
-    | '/admin/affiliation'
     | '/admin/analytics'
     | '/admin/contenus'
     | '/admin/equipe'
@@ -417,6 +416,7 @@ export interface FileRouteTypes {
     | '/admin/meta-ads'
     | '/admin/moderation'
     | '/admin/parametres'
+    | '/admin/parrainage'
     | '/admin/support'
     | '/admin/utilisateurs'
     | '/blog/$slug'
@@ -450,7 +450,6 @@ export interface FileRouteTypes {
     | '/parrainage'
     | '/profil'
     | '/admin/abonnements'
-    | '/admin/affiliation'
     | '/admin/analytics'
     | '/admin/contenus'
     | '/admin/equipe'
@@ -458,6 +457,7 @@ export interface FileRouteTypes {
     | '/admin/meta-ads'
     | '/admin/moderation'
     | '/admin/parametres'
+    | '/admin/parrainage'
     | '/admin/support'
     | '/admin/utilisateurs'
     | '/blog/$slug'
@@ -493,7 +493,6 @@ export interface FileRouteTypes {
     | '/_app/parrainage'
     | '/_app/profil'
     | '/admin/abonnements'
-    | '/admin/affiliation'
     | '/admin/analytics'
     | '/admin/contenus'
     | '/admin/equipe'
@@ -501,6 +500,7 @@ export interface FileRouteTypes {
     | '/admin/meta-ads'
     | '/admin/moderation'
     | '/admin/parametres'
+    | '/admin/parrainage'
     | '/admin/support'
     | '/admin/utilisateurs'
     | '/blog/$slug'
@@ -701,13 +701,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAbonnementsRouteImport
       parentRoute: typeof AdminRoute
     }
-    '/admin/affiliation': {
-      id: '/admin/affiliation'
-      path: '/affiliation'
-      fullPath: '/admin/affiliation'
-      preLoaderRoute: typeof AdminAffiliationRouteImport
-      parentRoute: typeof AdminRoute
-    }
     '/admin/analytics': {
       id: '/admin/analytics'
       path: '/analytics'
@@ -755,6 +748,13 @@ declare module '@tanstack/react-router' {
       path: '/parametres'
       fullPath: '/admin/parametres'
       preLoaderRoute: typeof AdminParametresRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/parrainage': {
+      id: '/admin/parrainage'
+      path: '/parrainage'
+      fullPath: '/admin/parrainage'
+      preLoaderRoute: typeof AdminParrainageRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/support': {
@@ -861,7 +861,6 @@ const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
 interface AdminRouteChildren {
   AdminAbonnementsRoute: typeof AdminAbonnementsRoute
-  AdminAffiliationRoute: typeof AdminAffiliationRoute
   AdminAnalyticsRoute: typeof AdminAnalyticsRoute
   AdminContenusRoute: typeof AdminContenusRoute
   AdminEquipeRoute: typeof AdminEquipeRoute
@@ -869,6 +868,7 @@ interface AdminRouteChildren {
   AdminMetaAdsRoute: typeof AdminMetaAdsRoute
   AdminModerationRoute: typeof AdminModerationRoute
   AdminParametresRoute: typeof AdminParametresRoute
+  AdminParrainageRoute: typeof AdminParrainageRoute
   AdminSupportRoute: typeof AdminSupportRoute
   AdminUtilisateursRoute: typeof AdminUtilisateursRoute
   AdminIndexRoute: typeof AdminIndexRoute
@@ -876,7 +876,6 @@ interface AdminRouteChildren {
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminAbonnementsRoute: AdminAbonnementsRoute,
-  AdminAffiliationRoute: AdminAffiliationRoute,
   AdminAnalyticsRoute: AdminAnalyticsRoute,
   AdminContenusRoute: AdminContenusRoute,
   AdminEquipeRoute: AdminEquipeRoute,
@@ -884,6 +883,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminMetaAdsRoute: AdminMetaAdsRoute,
   AdminModerationRoute: AdminModerationRoute,
   AdminParametresRoute: AdminParametresRoute,
+  AdminParrainageRoute: AdminParrainageRoute,
   AdminSupportRoute: AdminSupportRoute,
   AdminUtilisateursRoute: AdminUtilisateursRoute,
   AdminIndexRoute: AdminIndexRoute,

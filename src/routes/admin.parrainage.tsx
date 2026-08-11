@@ -9,7 +9,7 @@ import { invalidateSettings } from "@/lib/appSettings";
 import { formatPrice } from "@/lib/plans";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/admin/affiliation")({
+export const Route = createFileRoute("/admin/parrainage")({
   head: () => ({ meta: [{ title: "Parrainage — Administration" }] }),
   component: AdminAffiliation,
 });
@@ -39,7 +39,7 @@ function AdminAffiliation() {
   async function charger() {
     const { data, error } = await supabase.rpc("admin_affiliation");
     if (error || (data as any)?.error) {
-      console.error("[admin/affiliation]", error ?? data);
+      console.error("[admin/parrainage]", error ?? data);
       setErreur(true);
       return;
     }

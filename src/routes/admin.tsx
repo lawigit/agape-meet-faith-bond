@@ -38,7 +38,7 @@ const adminMenus: {
   // Sous « finances » et non « reglages » : le module engage des
   // versements réels, et la file des retraits doit rester entre les
   // mains de qui gère déjà l'argent.
-  { to: "/admin/affiliation", label: "Parrainage", icon: Gift, perm: "finances" },
+  { to: "/admin/parrainage", label: "Parrainage", icon: Gift, perm: "finances" },
   { to: "/admin/equipe", label: "Équipe", icon: UsersRound, perm: "equipe" },
   { to: "/admin/parametres", label: "Paramètres", icon: Settings, perm: "reglages" },
 ];
