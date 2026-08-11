@@ -54,7 +54,7 @@ export const FAQ: FaqItem[] = [
   {
     category: "Sécurité et confiance",
     q: "Les profils sont-ils vérifiés ?",
-    a: "Les profils vérifiés portent un badge visible. La vérification d'identité et de foi est traitée en priorité pour les membres VIP. Vous pouvez par ailleurs signaler ou bloquer n'importe quel membre en deux clics, et chaque signalement est examiné.",
+    a: "Notre équipe examine manuellement les profils — photos, cohérence des informations, sérieux de la démarche — avant d'attribuer le badge de vérification. Les demandes des membres VIP sont traitées en priorité. Vous pouvez par ailleurs signaler ou bloquer n'importe quel membre en deux clics, et chaque signalement est examiné.",
   },
   {
     category: "Sécurité et confiance",

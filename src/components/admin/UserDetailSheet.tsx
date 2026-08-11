@@ -5,6 +5,7 @@ import {
   LifeBuoy, User, Gift, AlertTriangle, MapPin, Eye, Ban, Heart, ShieldCheck,
 } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/lib/supabase";
 import { Avatar } from "@/components/app/Avatar";
 import {
   fetchUserDetail, grantDays, suspendUser, unsuspendUser,
@@ -95,6 +96,23 @@ export function UserDetailSheet({ userId, onClose, onChanged }: {
                     {p.is_verified && <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />}
                     <PlanTag profil={p} />
                   </div>
+
+                  {/* Certifier DEPUIS la fiche, et non depuis la liste.
+                      C'est ici qu'on vient de regarder les photos, la
+                      cohérence du profil et les signalements reçus :
+                      décider ailleurs obligeait à refermer la fiche pour
+                      retrouver la ligne, et donc à trancher de mémoire. */}
+                  <BoutonCertification
+                    verifie={!!p.is_verified}
+                    onBascule={async (v) => {
+                      const { error } = await supabase
+                        .from("profiles").update({ is_verified: v }).eq("id", userId);
+
+                      if (error) { toast.error("L'opération a échoué"); return; }
+                      toast.success(v ? "Profil certifié" : "Certification retirée");
+                      load(); onChanged();
+                    }}
+                  />
                   <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1.5">
                     <MapPin className="w-3 h-3" />
                     {[p.city, p.country].filter(Boolean).join(", ") || "Localisation non précisée"}
@@ -189,6 +207,55 @@ export function UserDetailSheet({ userId, onClose, onChanged }: {
         )}
       </motion.aside>
     </>
+  );
+}
+
+/**
+ * Certifier, ou retirer une certification.
+ *
+ * LE RETRAIT COMPTE AUTANT QUE L'ATTRIBUTION. Sans lui, une certification
+ * donnée par erreur — ou un membre honnête devenu problématique — reste
+ * affichée pour toujours, et le badge finit par ne plus rien garantir.
+ *
+ * Le retrait demande confirmation, l'attribution non : l'un enlève une
+ * garantie déjà montrée aux autres membres, l'autre s'annule d'un clic.
+ */
+function BoutonCertification({
+  verifie, onBascule,
+}: { verifie: boolean; onBascule: (v: boolean) => Promise<void> }) {
+  const [busy, setBusy] = useState(false);
+
+  const agir = async (v: boolean) => {
+    if (!v && !confirm(
+      "Retirer la certification de ce profil ?\n\n" +
+      "Le badge disparaîtra immédiatement pour tous les membres.",
+    )) return;
+
+    setBusy(true);
+    await onBascule(v);
+    setBusy(false);
+  };
+
+  if (verifie) {
+    return (
+      <button
+        onClick={() => agir(false)}
+        disabled={busy}
+        className="mt-2 inline-flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 transition disabled:opacity-50">
+        {busy ? <Loader2 className="w-3 h-3 animate-spin" /> : <ShieldCheck className="w-3 h-3" />}
+        Profil certifié · retirer
+      </button>
+    );
+  }
+
+  return (
+    <button
+      onClick={() => agir(true)}
+      disabled={busy}
+      className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl bg-emerald-600 text-white hover:opacity-90 transition disabled:opacity-50">
+      {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+      Certifier ce profil
+    </button>
   );
 }
 

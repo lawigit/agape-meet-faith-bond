@@ -501,7 +501,10 @@ function AllFeatures() {
     {
       icon: ShieldCheck,
       title: "Profils vérifiés",
-      desc: "Chaque profil est vérifié par pièce d'identité et selfie vidéo. Aucun faux compte, aucune surprise. Une communauté 100% authentique.",
+      // Décrit ce que fait RÉELLEMENT l'équipe : un examen manuel des
+      // photos et du profil, puis l'attribution d'un badge. Aucune pièce
+      // d'identité n'est demandée et aucun selfie vidéo n'est enregistré.
+      desc: "Chaque profil est examiné manuellement par notre équipe avant d'obtenir son badge de vérification. Les comptes douteux sont écartés, les signalements traités sous 24h.",
       tag: ""
     },
     {
@@ -646,7 +649,11 @@ function Why() {
           <div className="space-y-6">
             {[
               { icon: Church, title: "Foi, pas option — Foi, fondement", desc: "Sur AgapeMeet, votre dénomination, vos pratiques spirituelles et votre projet de vie en Christ sont au cœur de chaque recommandation. Vous êtes ici parmi les vôtres." },
-              { icon: ShieldCheck, title: "Aucun faux profil. Promis.", desc: "Vérification par pièce d'identité + selfie vidéo obligatoire. Notre modération active bloque et supprime les comptes frauduleux sous 24h. Une sécurité digne des grandes plateformes mondiales." },
+              // « Aucun faux profil. Promis. » était une garantie absolue
+              // qu'aucune plateforme ne peut tenir — et la première phrase
+              // qu'un membre déçu vous opposerait. Le titre annonce
+              // désormais l'effort, pas un résultat impossible.
+              { icon: ShieldCheck, title: "La chasse aux faux profils", desc: "Chaque profil est examiné manuellement par notre équipe avant d'être certifié. Les comptes signalés sont traités sous 24h, et les profils frauduleux supprimés sans avertissement." },
               { icon: HeartHandshake, title: "Orienté mariage, pas divertissement", desc: "Contrairement aux apps généralistes qui jouent avec vos émotions, AgapeMeet vous guide vers une relation sérieuse. Notre algorithme priorise la durabilité." },
               { icon: Globe, title: "Une diaspora africaine unie", desc: "De Douala à Paris, d'Abidjan à Montréal, de Dakar à Bruxelles — AgapeMeet connecte les chrétiens africains du monde entier, sans frontières." },
             ].map((item, i) => (
@@ -1024,7 +1031,7 @@ function FAQ() {
     },
     {
       q: "Comment fonctionne la vérification des profils ?",
-      a: "Chaque membre doit passer par une vérification d'identité (pièce d'identité + selfie vidéo). Un profil non vérifié est clairement indiqué et a des accès limités. Notre équipe de modération traite les signalements sous 24h.",
+      a: "Notre équipe examine manuellement les profils : photos, cohérence des informations et sérieux de la démarche. Les profils validés portent un badge visible ; les autres n'en ont pas, et cela se voit. Chaque signalement est examiné sous 24h, et vous pouvez bloquer n'importe quel membre en deux clics.",
     },
     {
       q: "Puis-je faire des appels vidéo et audio depuis l'app ?",
