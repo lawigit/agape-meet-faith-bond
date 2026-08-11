@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { REPORT_LABELS, DELETION_LABELS } from "@/lib/motifs";
+import { FileVerification } from "@/components/admin/FileVerification";
 
 export const Route = createFileRoute("/admin/moderation")({
   component: AdminModeration,
@@ -67,7 +68,9 @@ function AdminModeration() {
   const [names, setNames] = useState<Map<string, { name: string; photo: string | null }>>(new Map());
   const [blockCount, setBlockCount] = useState<number | null>(null);
   const [filter, setFilter] = useState<"pending" | "all">("pending");
-  const [view, setView] = useState<"signalements" | "departs">("signalements");
+  const [view, setView] = useState<"signalements" | "departs" | "verification">("signalements");
+  // Compté à part : ce nombre décide si la file mérite qu'on l'ouvre.
+  const [aVerifier, setAVerifier] = useState<number | null>(null);
   const [departures, setDepartures] = useState<Departures | null>(null);
   const [loadingDepartures, setLoadingDepartures] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -108,6 +111,12 @@ function AdminModeration() {
       .from("blocks").select("id", { count: "exact", head: true });
     setBlockCount(count ?? 0);
 
+    // `head: true` : on ne veut que le nombre, aucune ligne ne remonte.
+    const { count: nonVerifies } = await supabase
+      .from("profiles").select("id", { count: "exact", head: true })
+      .eq("is_verified", false);
+    setAVerifier(nonVerifies ?? 0);
+
     setLoading(false);
   };
 
@@ -146,6 +155,13 @@ function AdminModeration() {
 
   const visible = filter === "pending" ? reports.filter(r => r.status === "pending") : reports;
   const pendingCount = reports.filter(r => r.status === "pending").length;
+
+  // ── Vue « Vérification » ────────────────────────────────────
+  if (view === "verification") {
+    // `load()` au retour : le compteur doit refléter les profils
+    // certifiés pendant la session, sinon le bandeau ment.
+    return <FileVerification onBack={() => { setView("signalements"); load(); }} />;
+  }
 
   // ── Vue « Départs » ─────────────────────────────────────────
   if (view === "departs") {
@@ -189,6 +205,36 @@ function AdminModeration() {
         <Stat icon={Inbox} label="Signalements reçus" value={String(reports.length)} />
         <Stat icon={Ban} label="Blocages entre membres" value={blockCount === null ? "…" : String(blockCount)} />
       </div>
+
+      {/* La vérification est un acte de modération, pas d'administration :
+          on regarde des photos, on juge une déclaration, et l'on accorde
+          un badge que les autres membres liront comme une garantie. */}
+      <button
+        onClick={() => setView("verification")}
+        className="w-full rounded-2xl border border-border bg-card p-4 flex items-center justify-between gap-3 hover:bg-secondary/50 transition-colors text-left"
+      >
+        <div className="flex items-center gap-3">
+          <ShieldCheck className="w-5 h-5 text-primary shrink-0" />
+          <div>
+            <p className="font-semibold text-sm">Vérification des profils</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {aVerifier === null
+                ? "Chargement…"
+                : aVerifier === 0
+                  ? "Aucun profil en attente."
+                  : `${aVerifier} profil${aVerifier > 1 ? "s" : ""} en attente de certification.`}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          {!!aVerifier && (
+            <span className="text-[11px] font-semibold bg-primary text-primary-foreground rounded-full px-2 py-0.5 tabular-nums">
+              {aVerifier}
+            </span>
+          )}
+          <ChevronRight className="w-5 h-5 text-muted-foreground" />
+        </div>
+      </button>
 
       {/* Les départs relèvent de la même page : un membre qui part après une
           mauvaise expérience est le prolongement d'un signalement mal traité. */}
