@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { OngletsEquipe } from "@/components/admin/OngletsEquipe";
 import {
   LifeBuoy, Send, AlertTriangle, Loader2, RefreshCw, Clock,
   CheckCircle2, Inbox, ArrowLeft, Timer,
@@ -293,6 +294,8 @@ function AdminSupport() {
   // ── Vue liste ──────────────────────────────────────────────
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <OngletsEquipe />
+
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-3xl font-serif font-bold">Support</h1>

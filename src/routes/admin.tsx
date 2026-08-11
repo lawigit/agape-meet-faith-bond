@@ -1,5 +1,5 @@
 import { createFileRoute, Outlet, Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, Users, ShieldAlert, CreditCard, Megaphone, Settings, LogOut, BarChart3, LifeBuoy, FileText, UsersRound, Radio, Gift } from "lucide-react";
+import { LayoutDashboard, Users, ShieldAlert, CreditCard, Megaphone, Settings, LogOut, BarChart3, LifeBuoy, FileText, Radio, Gift } from "lucide-react";
 import { fetchMyPermissions, ROLE_LABELS, type MyPermissions, type Permission } from "@/lib/permissions";
 import logo from "@/assets/logo.png";
 import { supabase } from "@/lib/supabase";
@@ -29,7 +29,15 @@ const adminMenus: {
   { to: "/admin/abonnements", label: "Abonnements", icon: CreditCard, perm: "finances" },
   { to: "/admin/contenus", label: "Contenus", icon: FileText, perm: "contenus" },
   { to: "/admin/analytics", label: "Analytics", icon: BarChart3, perm: "finances" },
-  { to: "/admin/support", label: "Support", icon: LifeBuoy, perm: "support" },
+  // Support et Équipe réunis : les deux traitent des personnes qui font
+  // tourner l'application — celles qui posent des questions et celles qui
+  // y répondent. La page ouvre sur les demandes d'aide et bascule vers
+  // l'équipe par un onglet.
+  //
+  // `perm: "support"` suffit : la permission `equipe` n'appartient qu'au
+  // rôle administrateur, qui possède aussi `support`. Personne ne peut
+  // donc détenir l'une sans l'autre et se retrouver sans entrée de menu.
+  { to: "/admin/support", label: "Support & Équipe", icon: LifeBuoy, perm: "support" },
   // Menu PRINCIPAL, au même niveau que les autres — et non un sous-menu de
   // Marketing : Pixel, Conversions API, audiences et attribution forment un
   // module autonome, avec sa propre navigation interne.
@@ -39,7 +47,6 @@ const adminMenus: {
   // versements réels, et la file des retraits doit rester entre les
   // mains de qui gère déjà l'argent.
   { to: "/admin/parrainage", label: "Parrainage", icon: Gift, perm: "finances" },
-  { to: "/admin/equipe", label: "Équipe", icon: UsersRound, perm: "equipe" },
   { to: "/admin/parametres", label: "Paramètres", icon: Settings, perm: "reglages" },
 ];
 

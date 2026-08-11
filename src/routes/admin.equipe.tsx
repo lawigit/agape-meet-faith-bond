@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { OngletsEquipe } from "@/components/admin/OngletsEquipe";
 import {
   UsersRound, Search, Shield, Loader2, AlertTriangle, RefreshCw,
   Check, UserPlus, X, Eye,
@@ -101,6 +102,8 @@ function AdminEquipe() {
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10">
+      <OngletsEquipe />
+
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-3xl font-serif font-bold">Équipe</h1>
