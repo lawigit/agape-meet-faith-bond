@@ -29,10 +29,22 @@ export function MenuParrainage() {
     if (!actif || mode === "tous") return;
 
     let annule = false;
-    // La RLS de `affiliates` ne laisse voir que sa propre ligne : cette
-    // requête ne peut pas révéler qui d'autre est parrain.
-    supabase.from("affiliates").select("code").maybeSingle()
-      .then(({ data }: any) => { if (!annule) setAffilie(!!data); });
+
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || annule) return;
+
+      // ⚠️ `eq("user_id", …)` est INDISPENSABLE, et ne pas s'en remettre
+      // à la RLS. Sa politique est `user_id = auth.uid() OR is_admin()` :
+      // un administrateur voit donc TOUTES les lignes, `maybeSingle()`
+      // échoue sur plusieurs résultats, et le menu disparaît — pour les
+      // comptes fondateurs exactement, c'est-à-dire ceux qui testent.
+      const { data } = await supabase
+        .from("affiliates").select("code")
+        .eq("user_id", user.id).maybeSingle();
+
+      if (!annule) setAffilie(!!data);
+    })();
 
     return () => { annule = true; };
   }, [actif, mode]);

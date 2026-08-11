@@ -2,10 +2,10 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import {
   ArrowLeft, Users, Gift, Copy, Check, Share2, Wallet,
-  Clock, Lock, ArrowRight, Info,
+  Clock, Lock, Info, Coins,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import { formatPrice } from "@/lib/plans";
+import { formatPrice, OFFERS } from "@/lib/plans";
 import { lienParrainage } from "@/lib/parrainage";
 import { toast } from "sonner";
 
@@ -74,7 +74,12 @@ function ParrainagePage() {
   }
 
   const lien = lienParrainage(d.code!);
+  const taux = d.taux ?? 20;
   const seuil = d.seuil ?? 3000;
+  // L'offre de référence pour l'exemple chiffré : la mensuelle Premium,
+  // celle que prend la majorité. Lue dans `plans.ts` et non écrite en
+  // dur, pour qu'un changement de tarif ne laisse pas une phrase fausse.
+  const mensuel = OFFERS.find(o => o.id === "premium_1m")?.priceXOF ?? 4000;
   const dispo = d.disponible ?? 0;
   const atteint = dispo >= seuil;
 
@@ -136,7 +141,7 @@ function ParrainagePage() {
         </div>
 
         <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
-          Vous recevez <strong className="text-foreground">{d.taux ?? 20} %</strong> sur
+          Vous recevez <strong className="text-foreground">{taux} %</strong> sur
           chaque abonnement de vos filleuls — <strong className="text-foreground">à vie</strong>,
           à chaque renouvellement, aussi longtemps qu'ils restent abonnés.
         </p>
@@ -157,6 +162,54 @@ function ParrainagePage() {
 
         <p className="text-[11px] text-muted-foreground mt-3">
           Code : <strong className="text-foreground tracking-widest">{d.code}</strong>
+        </p>
+      </section>
+
+      {/* ── Ce que rapporte chaque offre ──
+          Le pourcentage seul ne parle à personne : « 20 % » reste
+          abstrait tant qu'on ne l'a pas traduit en francs. C'est en
+          voyant 2 400 F sur un VIP qu'on décide de partager son lien.
+
+          Tout est CALCULÉ : le taux vient de la base, les prix de
+          `plans.ts`. Recopier la grille à la main garantirait qu'elle
+          mente le jour où vous changez un tarif ou le pourcentage. */}
+      <section className="rounded-2xl border border-border bg-card p-5">
+        <h2 className="font-serif font-semibold flex items-center gap-2">
+          <Coins className="w-5 h-5 text-gold" /> Ce que vous gagnez
+        </h2>
+
+        <div className="mt-3 overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border">
+                <th className="text-left py-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Offre</th>
+                <th className="text-right py-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Prix</th>
+                <th className="text-right py-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Votre commission</th>
+              </tr>
+            </thead>
+            <tbody>
+              {OFFERS.map(o => (
+                <tr key={o.id} className="border-b border-border/60 last:border-0">
+                  <td className="py-2.5 font-medium">
+                    {o.planId === "vip" ? "VIP" : "Premium"} {o.label}
+                  </td>
+                  <td className="py-2.5 text-right tabular-nums text-muted-foreground">
+                    {formatPrice(o.priceXOF)}
+                  </td>
+                  <td className="py-2.5 text-right tabular-nums font-semibold text-gold">
+                    {formatPrice(Math.round(o.priceXOF * taux / 100))}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <p className="text-[11px] text-muted-foreground mt-3 leading-relaxed">
+          Ces montants vous sont versés <strong className="text-foreground">à chaque
+          renouvellement</strong>, pas une seule fois. Un filleul en Premium mensuel
+          vous rapporte {formatPrice(Math.round(mensuel * taux / 100))} tous les
+          mois tant qu'il reste abonné.
         </p>
       </section>
 
