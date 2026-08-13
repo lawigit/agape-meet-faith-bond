@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { motion } from "motion/react";
-import { Heart, Star, Eye, Check, X, Flag, Ban, Lock, ChevronDown } from "lucide-react";
+import { Heart, Star, Eye, Check, X, Flag, Ban, Lock, ChevronDown, ChevronUp } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { getCurrentUser } from "@/lib/auth";
 import { toast } from "sonner";
@@ -21,12 +21,14 @@ import {
  * donne envie de revenir, et cette information n'avait rien à faire à
  * deux clics de l'écran d'ouverture.
  *
- * CHAQUE BLOC N'APPARAÎT QUE S'IL A QUELQUE CHOSE À DIRE. Trois cadres
- * vides empilés en haut de l'accueil donneraient l'impression d'une
- * application déserte — exactement l'inverse de l'effet recherché.
+ * LES TROIS RUBRIQUES SONT TOUJOURS VISIBLES, même à zéro — une ligne
+ * discrète suffit alors. Les masquer quand elles sont vides ne laissait
+ * aucune trace d'elles sur un compte neuf : impossible de savoir que ces
+ * listes existent, ni où les retrouver une fois remplies.
  *
- * Seule exception : un bloc verrouillé s'affiche même sans contenu
- * visible, puisque le compteur chiffré EST son intérêt.
+ * Chacune montre d'abord des VISAGES, pas des cartes : le nombre seul
+ * est abstrait, la carte complète encombrante. « Voir plus » déplie le
+ * détail et ses actions.
  */
 
 type Profil = {
@@ -48,8 +50,6 @@ type LikeEntry = {
 
 type VisitEntry = { id: string; created_at: string; visitor: Profil | null };
 
-/** Combien d'éléments avant de replier. Deux lignes de deux. */
-const APERCU = 4;
 
 function age(d: string | null) {
   if (!d) return 0;
@@ -213,76 +213,89 @@ export function MesDemandes() {
 
   return (
     <div className="px-4 space-y-6">
-      {/* « M'ont aimé » est ouvert à tous : voir qu'on plaît est ce qui
-          fait revenir, et le verrouiller sur un compte neuf ne laisserait
-          qu'un cadenas devant une liste vide. */}
-      <Bloc titre="M'ont aimé" icone={Heart} n={likes.length}>
-        {(visibles) => (
-          likes.length === 0
-            ? <Rien texte="Personne ne vous a encore aimé." />
-            : <Grille>
-                {likes.slice(0, visibles).map((l, i) => (
-                  <CarteLike key={l.id} entry={l} delai={i * 0.03}
-                             onAccepter={accepter} onRefuser={refuser}
-                             onBloquer={bloquer}
-                             onSignaler={() => setSignaler({ id: l.swiper_id, name: l.profile?.first_name })} />
-                ))}
-              </Grille>
-        )}
-      </Bloc>
+      <BlocAvatars
+        titre="M'ont aimé"
+        icone={Heart}
+        verrouille={superVerrouille}
+        vide="Personne ne vous a encore aimé."
+        cta="Voir qui vous a aimé"
+        personnes={likes.map(l => ({
+          cle: l.id,
+          photo: l.profile?.photos?.[0],
+          prenom: l.profile?.first_name,
+        }))}
+      >
+        <Grille>
+          {likes.map((l, i) => (
+            <CarteLike key={l.id} entry={l} delai={i * 0.03}
+                       onAccepter={accepter} onRefuser={refuser}
+                       onBloquer={bloquer}
+                       onSignaler={() => setSignaler({ id: l.swiper_id, name: l.profile?.first_name })} />
+          ))}
+        </Grille>
+      </BlocAvatars>
 
-      <Bloc titre="Super Likes" icone={Star} n={superlikes.length}>
-        {(visibles) => (
-          superVerrouille
-            ? <Verrou n={superlikes.length} type="superlike" />
-            : superlikes.length === 0
-              ? <Rien texte="Aucun Super Like reçu pour l'instant." />
-              : <Grille>
-                  {superlikes.slice(0, visibles).map((l, i) => (
-                    <CarteLike key={l.id} entry={l} delai={i * 0.03}
-                               onAccepter={accepter} onRefuser={refuser}
-                               onBloquer={bloquer}
-                               onSignaler={() => setSignaler({ id: l.swiper_id, name: l.profile?.first_name })} />
-                  ))}
-                </Grille>
-        )}
-      </Bloc>
+      <BlocAvatars
+        titre="Super Likes"
+        icone={Star}
+        verrouille={superVerrouille}
+        vide="Aucun Super Like reçu pour l'instant."
+        cta="Voir vos Super Likes"
+        personnes={superlikes.map(l => ({
+          cle: l.id,
+          photo: l.profile?.photos?.[0],
+          prenom: l.profile?.first_name,
+        }))}
+      >
+        <Grille>
+          {superlikes.map((l, i) => (
+            <CarteLike key={l.id} entry={l} delai={i * 0.03}
+                       onAccepter={accepter} onRefuser={refuser}
+                       onBloquer={bloquer}
+                       onSignaler={() => setSignaler({ id: l.swiper_id, name: l.profile?.first_name })} />
+          ))}
+        </Grille>
+      </BlocAvatars>
 
-      <Bloc titre="Visiteurs" icone={Eye} n={visites.length}
-            verrouille={visitesVerrouillees}>
-        {(visibles) => (
-          visitesVerrouillees
-            ? <Verrou n={visites.length} type="visit" />
-            : visites.length === 0
-              ? <Rien texte="Personne n'a encore regardé votre profil." />
-              : <Grille>
-                  {visites.slice(0, visibles).map((v, i) => (
-                    <motion.div
-                      key={v.id}
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.03 }}
-                      className="rounded-2xl overflow-hidden bg-card border border-border/50 shadow-soft"
-                    >
-                      <div className="relative aspect-[3/4]">
-                        <Photo src={v.visitor?.photos?.[0]} name={v.visitor?.first_name || "Membre"} />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-transparent" />
-                        <span className="absolute top-2 left-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-background/90 text-foreground text-[10px] font-semibold">
-                          <Eye className="w-3 h-3" /> {ilYA(v.created_at)}
-                        </span>
-                        <div className="absolute inset-x-0 bottom-0 p-2.5 text-white">
-                          <div className="font-serif text-base font-semibold leading-tight truncate">
-                            {displayName(v.visitor?.first_name, v.visitor?.last_name)}
-                            {age(v.visitor?.birth_date || null) > 0 && `, ${age(v.visitor?.birth_date || null)}`}
-                          </div>
-                          <div className="text-[10px] opacity-90 mt-0.5">{v.visitor?.city}</div>
-                        </div>
-                      </div>
-                    </motion.div>
-                  ))}
-                </Grille>
-        )}
-      </Bloc>
+      <BlocAvatars
+        titre="Visiteurs"
+        icone={Eye}
+        verrouille={visitesVerrouillees}
+        vide="Personne n'a encore regardé votre profil."
+        cta="Voir vos visiteurs"
+        personnes={visites.map(v => ({
+          cle: v.id,
+          photo: v.visitor?.photos?.[0],
+          prenom: v.visitor?.first_name,
+        }))}
+      >
+        <Grille>
+          {visites.map((v, i) => (
+            <motion.div
+              key={v.id}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.03 }}
+              className="rounded-2xl overflow-hidden bg-card border border-border/50 shadow-soft"
+            >
+              <div className="relative aspect-[3/4]">
+                <Photo src={v.visitor?.photos?.[0]} name={v.visitor?.first_name || "Membre"} />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-transparent" />
+                <span className="absolute top-2 left-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-background/90 text-foreground text-[10px] font-semibold">
+                  <Eye className="w-3 h-3" /> {ilYA(v.created_at)}
+                </span>
+                <div className="absolute inset-x-0 bottom-0 p-2.5 text-white">
+                  <div className="font-serif text-base font-semibold leading-tight truncate">
+                    {displayName(v.visitor?.first_name, v.visitor?.last_name)}
+                    {age(v.visitor?.birth_date || null) > 0 && `, ${age(v.visitor?.birth_date || null)}`}
+                  </div>
+                  <div className="text-[10px] opacity-90 mt-0.5">{v.visitor?.city}</div>
+                </div>
+              </div>
+            </motion.div>
+          ))}
+        </Grille>
+      </BlocAvatars>
 
       <ReportDialog
         open={!!signaler}
@@ -295,24 +308,44 @@ export function MesDemandes() {
   );
 }
 
+function Grille({ children }: { children: React.ReactNode }) {
+  return <div className="grid grid-cols-2 gap-3">{children}</div>;
+}
+
+type Personne = { cle: string; photo?: string | null; prenom?: string | null };
+
 /**
- * Un bloc replié à quatre éléments.
+ * Une rubrique : compteur, rangée de visages, puis « Voir plus ».
  *
- * Ces listes atteignent vite plusieurs dizaines de profils. Tout dérouler
- * repousserait le reste de l'accueil — le contenu du jour, les
- * suggestions — sous plusieurs écrans de défilement.
+ * POURQUOI DES AVATARS ET NON DES CARTES. Le nombre seul est abstrait,
+ * la carte complète est encombrante. Une rangée de visages dit en un
+ * coup d'œil combien de personnes s'intéressent à vous, sans occuper un
+ * écran entier. « Voir plus » déplie le détail et ses actions.
+ *
+ * SOUS VERROU : LES VISAGES SONT FLOUTÉS, PAS MASQUÉS.
+ *
+ * Un carré vide ne donne envie de rien ; un flou dit qu'il y a réellement
+ * quelqu'un derrière. C'est toute la différence entre une invitation et
+ * une frustration.
+ *
+ * Et le compteur reste EXACT, jamais gonflé. Cacher le nombre
+ * n'inciterait à rien — c'est de savoir qu'ils sont douze à attendre que
+ * naît l'envie de s'abonner. Un chiffre inventé se retournerait contre
+ * vous le jour où l'abonné n'en trouverait que trois.
  */
-function Bloc({
-  titre, icone: Icone, n, verrouille, children,
+function BlocAvatars({
+  titre, icone: Icone, verrouille, personnes, vide, cta, children,
 }: {
   titre: string;
   icone: typeof Heart;
-  n: number;
-  verrouille?: boolean;
-  children: (visibles: number) => React.ReactNode;
+  verrouille: boolean;
+  personnes: Personne[];
+  vide: string;
+  cta: string;
+  children: React.ReactNode;
 }) {
-  const [tout, setTout] = useState(false);
-  const visibles = tout ? n : APERCU;
+  const [deplie, setDeplie] = useState(false);
+  const n = personnes.length;
 
   return (
     <section>
@@ -326,23 +359,58 @@ function Bloc({
             </span>
           )}
         </h3>
+        {verrouille && n > 0 && <Lock className="w-3.5 h-3.5 text-muted-foreground" />}
       </div>
 
-      {children(visibles)}
+      {n === 0 ? (
+        <Rien texte={vide} />
+      ) : deplie && !verrouille ? (
+        <>
+          {children}
+          <button
+            onClick={() => setDeplie(false)}
+            className="mt-3 w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-secondary hover:bg-secondary/80 text-sm font-medium transition-colors">
+            Réduire <ChevronUp className="w-3.5 h-3.5" />
+          </button>
+        </>
+      ) : (
+        <>
+          <div className="flex gap-2.5 overflow-x-auto scrollbar-none pb-1">
+            {personnes.slice(0, 12).map(p => (
+              <div key={p.cle} className="shrink-0">
+                <span className="block w-16 h-16 rounded-full p-[2px] bg-gradient-to-br from-primary to-gold">
+                  <span className="block w-full h-full rounded-full overflow-hidden bg-background">
+                    <span className={verrouille ? "block w-full h-full blur-md scale-110" : "block w-full h-full"}>
+                      <Photo src={p.photo} name={p.prenom || "Membre"} />
+                    </span>
+                  </span>
+                </span>
+                {/* Le prénom est caché avec le visage : livrer la moitié
+                    de l'information reviendrait à ne rien verrouiller. */}
+                <p className="text-[10px] text-center mt-1 truncate w-16 text-muted-foreground">
+                  {verrouille ? "•••" : p.prenom}
+                </p>
+              </div>
+            ))}
+          </div>
 
-      {!verrouille && n > APERCU && !tout && (
-        <button
-          onClick={() => setTout(true)}
-          className="mt-3 w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-secondary hover:bg-secondary/80 text-sm font-medium transition-colors">
-          Voir les {n - APERCU} autres <ChevronDown className="w-3.5 h-3.5" />
-        </button>
+          {verrouille ? (
+            <Link
+              to="/abonnement"
+              className="mt-3 w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-gold text-gold-foreground text-sm font-semibold shadow-elegant hover:opacity-90 transition-opacity">
+              <Lock className="w-4 h-4" /> {cta} — Premium
+            </Link>
+          ) : (
+            <button
+              onClick={() => setDeplie(true)}
+              className="mt-3 w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-secondary hover:bg-secondary/80 text-sm font-medium transition-colors">
+              Voir plus <ChevronDown className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </>
       )}
     </section>
   );
-}
-
-function Grille({ children }: { children: React.ReactNode }) {
-  return <div className="grid grid-cols-2 gap-3">{children}</div>;
 }
 
 /**
@@ -414,34 +482,5 @@ function CarteLike({
         </button>
       </div>
     </motion.div>
-  );
-}
-
-/** On dit COMBIEN, jamais QUI. C'est ce qui donne envie, et c'est honnête. */
-function Verrou({ n, type }: { n: number; type: "superlike" | "visit" }) {
-  const vide = type === "visit"
-    ? "personne n'a encore regardé votre profil"
-    : "aucun Super Like reçu pour l'instant";
-
-  const teaser = type === "visit"
-    ? `${n} membre${n > 1 ? "s ont" : " a"} récemment regardé votre profil`
-    : `${n} Super Like${n > 1 ? "s" : ""} vous attend${n > 1 ? "ent" : ""}`;
-
-  return (
-    <div className="rounded-3xl overflow-hidden relative">
-      <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary/85 to-primary/70" />
-      <div className="relative p-6 text-center text-primary-foreground">
-        <div className="w-12 h-12 rounded-full bg-gold text-gold-foreground mx-auto flex items-center justify-center shadow-elegant">
-          <Lock className="w-5 h-5" />
-        </div>
-        <div className="font-serif text-3xl font-semibold mt-3">{n > 0 ? n : "—"}</div>
-        <p className="text-sm opacity-95 mt-1">{n > 0 ? teaser : vide}</p>
-        <Link
-          to="/abonnement"
-          className="mt-4 inline-flex px-5 py-2 rounded-full bg-gold text-gold-foreground text-sm font-semibold shadow-elegant">
-          Devenir Premium
-        </Link>
-      </div>
-    </div>
   );
 }

@@ -22,12 +22,12 @@ export type PlanFeatures = {
   /** Voir réellement les visiteurs (le gratuit n'a qu'un aperçu flouté) */
   visitors: boolean;
   /**
-   * Consulter l'onglet Super Likes reçus.
+   * Voir QUI vous a aimé — « M'ont aimé » et les Super Likes reçus.
    *
-   * Ne couvre plus « M'ont aimé », désormais ouvert à tous : verrouiller
-   * cet onglet sur un compte neuf — qui n'a encore aucun match — ne
-   * laissait qu'un écran vide et un cadenas, au moment précis où il faut
-   * donner une raison de revenir.
+   * Sans ce droit, les visages restent floutés et les prénoms masqués,
+   * mais le NOMBRE reste visible et exact. Cacher jusqu'au compteur
+   * n'inciterait à rien : c'est de savoir qu'ils sont douze à attendre
+   * que naît l'envie de s'abonner.
    */
   seeAdmirers: boolean;
   superLikesPerDay: number; // -1 = illimité
@@ -193,10 +193,10 @@ export const PLANS: Plan[] = [
       "25 likes par jour pour explorer sans précipitation",
       "1 Super Like par semaine, pour les profils qui vous touchent vraiment",
       "5 messages par jour avec vos matchs",
-      // Ouvert à tous depuis que « M'ont aimé » n'est plus verrouillé :
-      // c'est ce qui donne envie de revenir, et l'annoncer ici évite de
-      // le faire découvrir par hasard.
-      "Voir qui vous a aimé",
+      // « Voir qui vous a aimé » a quitté cette liste : la rubrique est
+      // redevenue payante. L'annoncer en Gratuit ferait promettre à
+      // l'inscription ce qu'un cadenas refuse ensuite.
+      "Savoir combien de personnes vous ont aimé",
       "Le verset du jour et la vie de la communauté",
     ],
     limits: [
