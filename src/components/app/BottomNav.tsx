@@ -12,11 +12,16 @@ type NavItem = {
   badge?: keyof NavBadges;
 };
 
+// Seule la PASTILLE des demandes est passée sur « Accueil », avec les
+// listes qu'elle compte. Un compteur rouge doit mener à ce qu'il annonce,
+// et le laisser sur « Demandes » aurait promis des likes pour ouvrir une
+// page vide — sans jamais retomber, puisque rien ne s'y consulte plus.
+// L'onglet, lui, reste en place.
 const items: NavItem[] = [
-  { to: "/accueil", label: "Accueil", icon: Home, exact: true },
+  { to: "/accueil", label: "Accueil", icon: Home, exact: true, badge: "demandes" },
   { to: "/decouvrir", label: "Découvrir", icon: Flame },
   { to: "/messages", label: "Messages", icon: MessageCircle, badge: "messages" },
-  { to: "/demandes", label: "Demandes", icon: Heart, badge: "demandes" },
+  { to: "/demandes", label: "Demandes", icon: Heart },
   { to: "/communaute", label: "Communauté", icon: Users, badge: "communaute" },
 ];
 

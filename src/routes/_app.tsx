@@ -375,7 +375,9 @@ function AppLayout() {
                   </div>
                   <div className="max-h-[300px] overflow-y-auto">
                     <DropdownMenuItem asChild className="p-3 m-1 rounded-xl cursor-pointer hover:bg-secondary flex items-start gap-3">
-                      <Link to="/demandes">
+                      {/* Vers l'accueil : c'est là que les Super Likes
+                          s'affichent désormais. */}
+                      <Link to="/accueil">
                         <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
                           <Heart className="w-4 h-4" fill="currentColor" />
                         </div>

@@ -414,3 +414,43 @@ export function subscriptionExpiringEmail(params: {
     }),
   };
 }
+
+/**
+ * Profil certifié.
+ *
+ * Le message dit ce que le badge apporte CONCRÈTEMENT — être vu, être
+ * cru — plutôt que de se féliciter. Un membre qui ne comprend pas à quoi
+ * sert une distinction ne la valorise pas.
+ *
+ * Catégorie « transactional » : il annonce un changement d'état du
+ * compte, comme un reçu. Il n'est pas soumis au désabonnement marketing,
+ * et n'est envoyé qu'une fois grâce à sa clé de déduplication.
+ */
+export function profileVerifiedEmail(params: { firstName: string }) {
+  return {
+    subject: "Votre profil est certifié — AgapeMeet",
+    html: layout({
+      title: `C'est validé, ${params.firstName}`,
+      body: `
+        <p style="margin:0">
+          Votre profil vient d'obtenir le
+          <strong style="color:#1f1720">badge de vérification</strong>.
+          Il est désormais visible à côté de votre prénom.
+        </p>
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+               style="margin:18px 0 0;background:#faf7f8;border-radius:12px">
+          <tr><td style="padding:14px 16px;font-size:14px;color:#544a50">
+            Les profils certifiés sont <strong style="color:#1f1720">mieux placés</strong>
+            dans les suggestions, et reçoivent nettement plus de réponses :
+            savoir qu'un profil a été vérifié lève la première hésitation.
+          </td></tr>
+        </table>
+        <p style="margin:14px 0 0;font-size:13px;color:#8b7f86">
+          Le badge peut être retiré si votre profil venait à ne plus respecter
+          nos conditions d'utilisation.
+        </p>`,
+      ctaLabel: "Voir mon profil",
+      ctaUrl: `${APP_URL}/profil`,
+    }),
+  };
+}

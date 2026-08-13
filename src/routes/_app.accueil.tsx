@@ -17,6 +17,8 @@ import { toast } from "sonner";
 import { useSubscription } from "@/lib/subscription";
 import { useNavigate } from "@tanstack/react-router";
 import { Lock } from "lucide-react";
+import { MesDemandes } from "@/components/app/MesDemandes";
+import { BoutonAjouter } from "@/components/app/BoutonAjouter";
 
 export const Route = createFileRoute("/_app/accueil")({
   head: () => ({
@@ -355,50 +357,17 @@ function HomePage() {
             })
           )}
 
+          {/* Ce qui vivait dans /demandes derrière des onglets : qui m'a
+              aimé, qui m'a envoyé un Super Like, qui a regardé mon profil.
+              Placé au-dessus des rubriques secondaires — savoir qu'on
+              plaît est ce qui fait revenir, et cela n'a rien à faire sous
+              le conseil du jour. */}
+          <div className="mb-7">
+            <MesDemandes />
+          </div>
+
           {/* === Additional Sections === */}
           <div className="px-4 space-y-5 pb-8">
-
-            {/* Ils ont consulté ton profil */}
-            <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="rounded-3xl bg-card border border-border/50 p-5 shadow-soft"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <Eye className="w-4 h-4 text-primary" />
-                  <h3 className="font-serif text-base font-semibold">Ils ont consulté ton profil</h3>
-                </div>
-                <span className="text-[10px] font-bold bg-primary/10 text-primary px-2 py-0.5 rounded-full">
-                  {visitors.length} cette semaine
-                </span>
-              </div>
-              <p className="text-xs text-muted-foreground mb-4">
-                Les membres qui ont récemment regardé ton profil.
-              </p>
-              <div className="space-y-3">
-                {visitors.map((v) => (
-                  <div key={v.id} className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <img 
-                        src={v.photo} 
-                        alt={v.firstName} 
-                        className="w-9 h-9 rounded-full object-cover border border-border/50"
-                      />
-                      <span className="text-sm font-medium">{v.firstName}</span>
-                    </div>
-                    <span className="text-xs text-muted-foreground">1j</span>
-                  </div>
-                ))}
-              </div>
-              <Link
-                to="/decouvrir"
-                className="mt-4 w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-secondary hover:bg-secondary/80 text-sm font-medium transition-colors"
-              >
-                Voir mes visiteurs <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
-            </motion.div>
 
             {/* Conseil du jour */}
             <motion.div
@@ -662,6 +631,11 @@ function ProfileDetailModal({ profile, onClose }: { profile: Profile; onClose: (
               }}
             />
           </div>
+
+          {/* La demande de contact se décide ici, sur le profil : c'est
+              le seul endroit où l'on dispose de quoi juger. Distincte du
+              like — explicite, nominative, et elle appelle une réponse. */}
+          <BoutonAjouter autreId={profile.id} />
 
           {/* CTA */}
           <Link

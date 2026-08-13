@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { Avatar } from "@/components/app/Avatar";
 import {
-  fetchUserDetail, grantDays, suspendUser, unsuspendUser,
+  fetchUserDetail, grantDays, suspendUser, unsuspendUser, certifyUser,
   OFFER_LABELS, type UserDetail,
 } from "@/lib/adminUsers";
 import { formatPrice } from "@/lib/plans";
@@ -105,10 +105,8 @@ export function UserDetailSheet({ userId, onClose, onChanged }: {
                   <BoutonCertification
                     verifie={!!p.is_verified}
                     onBascule={async (v) => {
-                      const { error } = await supabase
-                        .from("profiles").update({ is_verified: v }).eq("id", userId);
-
-                      if (error) { toast.error("L'opération a échoué"); return; }
+                      const res = await certifyUser(userId, v);
+                      if (!res.ok) { toast.error("L'opération a échoué"); return; }
                       toast.success(v ? "Profil certifié" : "Certification retirée");
                       load(); onChanged();
                     }}

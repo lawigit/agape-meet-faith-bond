@@ -1,11 +1,14 @@
 import { useEffect, useState } from "react";
 import {
   ArrowLeft, RefreshCw, ShieldCheck, CheckCircle2, Eye, Loader2,
-  AlertTriangle, MapPin, Flag, Inbox,
+  AlertTriangle, MapPin, Flag, Inbox, Clock,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
-import { fetchUsers, DEFAULT_FILTERS, PAGE_SIZE, type UserRow } from "@/lib/adminUsers";
+import { invalidateSettings } from "@/lib/appSettings";
+import {
+  fetchUsers, certifyUser, DEFAULT_FILTERS, PAGE_SIZE, type UserRow,
+} from "@/lib/adminUsers";
 import { UserDetailSheet } from "@/components/admin/UserDetailSheet";
 import { displayName } from "@/lib/utils";
 
@@ -56,11 +59,12 @@ export function FileVerification({ onBack }: { onBack: () => void }) {
    */
   async function certifier(u: UserRow) {
     setBusy(u.id);
-    const { error } = await supabase
-      .from("profiles").update({ is_verified: true }).eq("id", u.id);
+    const res = await certifyUser(u.id, true);
     setBusy(null);
 
-    if (error) { toast.error("L'opération a échoué"); return; }
+    // La carte ne disparaît QUE si la base a confirmé. Sinon la file
+    // donnerait l'illusion d'avancer sur des profils non certifiés.
+    if (!res.ok) { toast.error("La certification a échoué"); return; }
     toast.success(`${u.first_name} certifié`);
     setRows(prev => prev.filter(x => x.id !== u.id));
     setTotal(t => Math.max(0, t - 1));
@@ -96,14 +100,18 @@ export function FileVerification({ onBack }: { onBack: () => void }) {
         </div>
       )}
 
-      <div className="rounded-2xl border border-border bg-card p-4 flex items-center gap-3">
-        <ShieldCheck className="w-5 h-5 text-primary shrink-0" />
-        <div>
-          <div className="text-2xl font-serif font-bold tabular-nums">{total}</div>
-          <div className="text-xs text-muted-foreground">
-            {total > 1 ? "profils en attente de vérification" : "profil en attente de vérification"}
+      <div className="grid gap-4 lg:grid-cols-2">
+        <div className="rounded-2xl border border-border bg-card p-4 flex items-center gap-3">
+          <ShieldCheck className="w-5 h-5 text-primary shrink-0" />
+          <div>
+            <div className="text-2xl font-serif font-bold tabular-nums">{total}</div>
+            <div className="text-xs text-muted-foreground">
+              {total > 1 ? "profils en attente de vérification" : "profil en attente de vérification"}
+            </div>
           </div>
         </div>
+
+        <ReglageAuto />
       </div>
 
       {chargement && rows.length === 0 ? (
@@ -209,6 +217,117 @@ export function FileVerification({ onBack }: { onBack: () => void }) {
           onChanged={() => charger(0)}
         />
       )}
+    </div>
+  );
+}
+
+/**
+ * Certification automatique — l'interrupteur et son délai.
+ *
+ * Placé ICI, au-dessus de la file qu'il alimente. Rangé dans les réglages
+ * généraux, on l'activerait sans voir la file se vider, ni comprendre
+ * pourquoi elle reste vide ensuite.
+ */
+function ReglageAuto() {
+  const [actif, setActif] = useState<boolean | null>(null);
+  const [heures, setHeures] = useState("3");
+  const [minPhotos, setMinPhotos] = useState("1");
+  const [busy, setBusy] = useState(false);
+
+  async function lire() {
+    const { data } = await supabase
+      .from("app_settings").select("key, value")
+      .in("key", ["certification_auto", "certification_auto_heures", "certification_auto_min_photos"]);
+
+    const m = new Map((data ?? []).map((r: any) => [r.key, r.value]));
+    setActif(m.get("certification_auto") === true);
+    setHeures(String(m.get("certification_auto_heures") ?? 3));
+    setMinPhotos(String(m.get("certification_auto_min_photos") ?? 1));
+  }
+
+  useEffect(() => { lire(); }, []);
+
+  async function ecrire(key: string, value: any) {
+    setBusy(true);
+    const { error } = await supabase
+      .from("app_settings")
+      .update({ value, updated_at: new Date().toISOString() })
+      .eq("key", key);
+    setBusy(false);
+
+    if (error) { toast.error("Enregistrement impossible"); return; }
+    invalidateSettings();
+    toast.success("Enregistré");
+    lire();
+  }
+
+  if (actif === null) return <div className="rounded-2xl bg-secondary animate-pulse" />;
+
+  return (
+    <div className={`rounded-2xl border p-4 ${actif ? "border-emerald-500/40 bg-emerald-500/5" : "border-border bg-card"}`}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <Clock className={`w-4 h-4 ${actif ? "text-emerald-600" : "text-muted-foreground"}`} />
+          <div>
+            <div className="text-sm font-semibold">Certification automatique</div>
+            <div className="text-[11px] text-muted-foreground">
+              {actif
+                ? `Après ${heures} h, si le profil a au moins ${minPhotos} photo${Number(minPhotos) > 1 ? "s" : ""} et aucun signalement.`
+                : "Désactivée — chaque profil est certifié à la main."}
+            </div>
+          </div>
+        </div>
+        <button
+          onClick={() => ecrire("certification_auto", !actif)}
+          disabled={busy}
+          className={`shrink-0 rounded-xl px-3 py-1.5 text-xs font-semibold transition disabled:opacity-50 ${
+            actif ? "bg-secondary hover:bg-secondary/70" : "bg-emerald-600 text-white hover:opacity-90"}`}>
+          {actif ? "Désactiver" : "Activer"}
+        </button>
+      </div>
+
+      {actif && (
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          <ChampNum label="Délai (heures)" value={heures} onChange={setHeures}
+                    onSave={v => ecrire("certification_auto_heures", v)} />
+          <ChampNum label="Photos minimum" value={minPhotos} onChange={setMinPhotos}
+                    onSave={v => ecrire("certification_auto_min_photos", v)} />
+        </div>
+      )}
+
+      {actif && minPhotos === "0" && (
+        <p className="text-[11px] text-gold mt-2 leading-relaxed">
+          À zéro photo, un profil vide obtient le badge. Il ne distingue
+          alors plus personne.
+        </p>
+      )}
+    </div>
+  );
+}
+
+function ChampNum({
+  label, value, onChange, onSave,
+}: { label: string; value: string; onChange: (v: string) => void; onSave: (v: number) => void }) {
+  const [initial] = useState(value);
+
+  return (
+    <div>
+      <label className="text-[11px] text-muted-foreground">{label}</label>
+      <div className="mt-1 flex gap-1.5">
+        <input
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          inputMode="numeric"
+          className="w-full rounded-lg border border-border bg-background px-2.5 py-1.5 text-sm tabular-nums"
+        />
+        {value !== initial && (
+          <button
+            onClick={() => { const n = Number(value); if (Number.isFinite(n) && n >= 0) onSave(n); }}
+            className="rounded-lg bg-primary text-primary-foreground px-2.5 text-xs font-medium">
+            OK
+          </button>
+        )}
+      </div>
     </div>
   );
 }

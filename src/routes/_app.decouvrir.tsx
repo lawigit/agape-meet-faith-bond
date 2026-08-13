@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { motion, useMotionValue, useTransform, AnimatePresence } from "motion/react";
 import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
+import { BoutonAjouter } from "@/components/app/BoutonAjouter";
 import { getCurrentUser } from "@/lib/auth";
 import {
   X,
@@ -862,6 +863,10 @@ function ProfileDetailModal({ profile, onClose }: { profile: Profile; onClose: (
               <div><span className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Vision du mariage</span><p className="font-medium text-sm leading-relaxed">{profile.marriageVision}</p></div>
             </div>
           </section>
+          {/* Demande de contact — explicite, à côté du like qui, lui,
+              reste silencieux tant qu'il n'est pas réciproque. */}
+          <BoutonAjouter autreId={profile.id} />
+
           <section>
             <h3 className="font-serif text-lg font-semibold mb-2">À propos</h3>
             <p className="text-sm leading-relaxed text-muted-foreground">{profile.bio}</p>

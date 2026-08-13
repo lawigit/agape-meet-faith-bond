@@ -2,559 +2,485 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import {
-  Heart,
-  Star,
-  Sparkles,
-  Eye,
-  Check,
-  X,
-  Flag,
-  Ban,
-  Lock,
-  MessageCircle,
+  Heart, Inbox, Send, UserCheck, Hourglass, CheckCircle2, XCircle,
+  Search, MapPin, Clock, X, ArrowRight, MessageCircle, Check, Ban, Flag,
+  Quote,
 } from "lucide-react";
-import { supabase } from "@/lib/supabase";
-import { getCurrentUser } from "@/lib/auth";
 import { toast } from "sonner";
-import { useSubscription } from "@/lib/subscription";
 import { displayName } from "@/lib/utils";
 import { ReportDialog } from "@/components/app/ReportDialog";
+import { blockUser } from "@/lib/moderation";
 import {
-  blockUser,
-  dismissLike,
-  fetchBlockedIds,
-  fetchDismissedIds,
-} from "@/lib/moderation";
+  fetchDemandes, repondreDemande, annulerDemande, RAISONS,
+  type Demande, type StatutDemande, type MesDemandes,
+} from "@/lib/contacts";
 
 export const Route = createFileRoute("/_app/demandes")({
   head: () => ({
     meta: [
       { title: "Demandes — AgapeMeet" },
-      { name: "description", content: "Vos likes, super likes et matches." },
       { name: "robots", content: "noindex" },
     ],
   }),
   component: RequestsPage,
 });
 
-type LikeEntry = {
-  id: string;
-  swiper_id: string;
-  action: "like" | "superlike";
-  created_at: string;
-  profile: {
-    id: string;
-    first_name: string;
-    last_name: string | null;
-    birth_date: string | null;
-    city: string | null;
-    photos: string[] | null;
-  };
-};
+/**
+ * Demandes de contact — reçues, envoyées, contacts.
+ *
+ * RIEN À VOIR AVEC LES LIKES. Un like part d'un balayage, reste
+ * silencieux, et n'apparaît que s'il est réciproque : il se consulte
+ * dans « M'ont aimé », sur l'accueil. Une demande de contact est
+ * explicite — on sollicite quelqu'un nommément, et l'autre répond.
+ *
+ * C'est pourquoi cette page peut proposer « Annuler » et « Refusée » :
+ * ces deux notions n'ont aucun sens pour un like.
+ */
 
-type MatchEntry = {
-  id: string;
-  created_at: string;
-  other: {
-    id: string;
-    first_name: string;
-    last_name: string | null;
-    birth_date: string | null;
-    city: string | null;
-    photos: string[] | null;
-  };
-};
+type Onglet = "recues" | "envoyees" | "contacts";
+type Filtre = "toutes" | "pending" | "accepted" | "refused";
 
-type VisitEntry = {
-  id: string;
-  created_at: string;
-  visitor: {
-    id: string;
-    first_name: string;
-    last_name: string | null;
-    birth_date: string | null;
-    city: string | null;
-    photos: string[] | null;
-  } | null;
-};
+const ONGLETS = [
+  { id: "recues" as const, label: "Reçues", icone: Inbox },
+  { id: "envoyees" as const, label: "Envoyées", icone: Send },
+  { id: "contacts" as const, label: "Contacts", icone: UserCheck },
+];
 
-const tabs = [
-  { id: "match", label: "Matches", icon: Sparkles },
-  { id: "like", label: "M'ont aimé", icon: Heart },
-  { id: "superlike", label: "Super Likes", icon: Star },
-  { id: "visit", label: "Visiteurs", icon: Eye, premium: true },
-] as const;
+const FILTRES: { id: Filtre; label: string; icone: any }[] = [
+  { id: "toutes", label: "Toutes", icone: Send },
+  { id: "pending", label: "En attente", icone: Hourglass },
+  { id: "accepted", label: "Acceptées", icone: CheckCircle2 },
+  { id: "refused", label: "Refusées", icone: XCircle },
+];
 
-type TabId = (typeof tabs)[number]["id"];
-
-function getAge(birthDate: string | null) {
-  if (!birthDate) return 0;
-  const b = new Date(birthDate);
+function age(d: string | null | undefined) {
+  if (!d) return 0;
+  const b = new Date(d);
   if (Number.isNaN(b.getTime())) return 0;
-  const now = new Date();
-  let age = now.getFullYear() - b.getFullYear();
-  const m = now.getMonth() - b.getMonth();
-  if (m < 0 || (m === 0 && now.getDate() < b.getDate())) age--;
-  return age > 0 && age < 120 ? age : 0;
+  const n = new Date();
+  let a = n.getFullYear() - b.getFullYear();
+  const m = n.getMonth() - b.getMonth();
+  if (m < 0 || (m === 0 && n.getDate() < b.getDate())) a--;
+  return a > 0 && a < 120 ? a : 0;
 }
 
-/** « il y a 5 min » / « il y a 3 h » / « le 12/03 » */
-function timeAgo(iso: string) {
-  const mins = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
-  if (mins < 1) return "à l'instant";
-  if (mins < 60) return `il y a ${mins} min`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `il y a ${hours} h`;
-  const days = Math.floor(hours / 24);
-  if (days < 7) return `il y a ${days} j`;
-  return `le ${new Date(iso).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" })}`;
-}
-
-/** Vignette avec repli sur l'initiale — remplace les URLs placehold.co cassées */
-function CardPhoto({ src, name }: { src: string | null | undefined; name: string }) {
-  const [failed, setFailed] = useState(false);
-
-  if (!src || failed) {
-    return (
-      <div className="w-full h-full bg-gradient-to-br from-primary/25 to-gold/25 flex items-center justify-center font-serif text-4xl font-semibold text-primary">
-        {(name || "?").charAt(0).toUpperCase()}
-      </div>
-    );
-  }
-  return <img src={src} alt={name} className="w-full h-full object-cover" onError={() => setFailed(true)} />;
+function ilYA(iso: string) {
+  const min = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
+  if (min < 1) return "à l'instant";
+  if (min < 60) return `Il y a ${min} min`;
+  const h = Math.floor(min / 60);
+  if (h < 24) return `Il y a ${h} h`;
+  const j = Math.floor(h / 24);
+  if (j < 7) return `Il y a ${j} jour${j > 1 ? "s" : ""}`;
+  return new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
 }
 
 function RequestsPage() {
-  const [active, setActive] = useState<TabId>("match");
-  const [reportTarget, setReportTarget] = useState<{ id: string; name?: string } | null>(null);
-  const [likes, setLikes] = useState<LikeEntry[]>([]);
-  const [superlikes, setSuperlikes] = useState<LikeEntry[]>([]);
-  const [matches, setMatches] = useState<MatchEntry[]>([]);
-  const [visits, setVisits] = useState<VisitEntry[]>([]);
-  const [loading, setLoading] = useState(true);
-  const { features } = useSubscription();
+  const [onglet, setOnglet] = useState<Onglet>("recues");
+  const [filtre, setFiltre] = useState<Filtre>("toutes");
+  const [d, setD] = useState<MesDemandes | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [apercu, setApercu] = useState<Demande | null>(null);
+  const [signaler, setSignaler] = useState<{ id: string; name?: string } | null>(null);
   const navigate = useNavigate();
 
-  /**
-   * Ce qui reste réservé aux formules payantes.
-   *
-   * « M'ont aimé » est ouvert à tous : voir qu'on plaît est ce qui donne
-   * envie de revenir, et le verrouiller sur un compte neuf — qui n'a
-   * encore aucun match — ne laissait qu'un onglet vide et un cadenas.
-   *
-   * « Super Likes » et « Visiteurs » restent payants : ils sont plus
-   * rares et plus révélateurs.
-   */
-  const tabVerrouille = (id: TabId): boolean => {
-    if (id === "visit") return !features.visitors;
-    if (id === "superlike") return !features.seeAdmirers;
-    return false;
+  async function charger() {
+    setD(await fetchDemandes());
+  }
+
+  useEffect(() => { charger(); }, []);
+
+  /* ── Actions ── */
+
+  const repondre = async (dem: Demande, accepte: boolean) => {
+    setBusy(dem.id);
+    const res = await repondreDemande(dem.id, accepte);
+    setBusy(null);
+
+    if (!res.ok) { toast.error(RAISONS[(res as any).raison] ?? "Action impossible"); return; }
+    toast.success(accepte ? `${dem.prenom} fait partie de vos contacts` : "Demande refusée");
+    charger();
   };
 
-  const isPremiumLocked = tabVerrouille(active);
+  const annuler = async (dem: Demande) => {
+    setBusy(dem.id);
+    const res = await annulerDemande(dem.id);
+    setBusy(null);
 
-  useEffect(() => {
-    async function load() {
-      setLoading(true);
-      try {
-        const user = await getCurrentUser();
-        if (!user) return;
-
-        // Tout ce qui ne dépend de rien part en parallèle : 1 ronde au lieu de 2
-        const [{ data: swipesData }, blockedIds, dismissedIds] = await Promise.all([
-          supabase
-            .from("swipes")
-            .select("id, swiper_id, action, created_at, profiles!swipes_swiper_id_fkey(id, first_name, last_name, birth_date, city, photos)")
-            .eq("target_id", user.id)
-            .in("action", ["like", "superlike"])
-            .order("created_at", { ascending: false }),
-          fetchBlockedIds(),
-          fetchDismissedIds(),
-        ]);
-        const hidden = new Set([...blockedIds, ...dismissedIds]);
-
-        if (swipesData) {
-          const all = swipesData
-            .filter((s: any) => !hidden.has(s.swiper_id))
-            .map((s: any) => ({
-              id: s.id,
-              swiper_id: s.swiper_id,
-              action: s.action,
-              created_at: s.created_at,
-              profile: s.profiles,
-            }));
-          setLikes(all.filter((s: any) => s.action === "like"));
-          setSuperlikes(all.filter((s: any) => s.action === "superlike"));
-        }
-
-        // Charger les matches
-        const { data: matchesData } = await supabase
-          .from("matches")
-          .select("id, created_at, user1_id, user2_id")
-          .or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`)
-          .order("created_at", { ascending: false });
-
-        if (matchesData && matchesData.length > 0) {
-          const otherIds = matchesData.map((m: any) =>
-            m.user1_id === user.id ? m.user2_id : m.user1_id
-          );
-          const { data: profilesData } = await supabase
-            .from("profiles")
-            .select("id, first_name, last_name, birth_date, city, photos")
-            .in("id", otherIds);
-
-          const profileMap = new Map(profilesData?.map((p: any) => [p.id, p]));
-          setMatches(matchesData.map((m: any) => {
-            const otherId = m.user1_id === user.id ? m.user2_id : m.user1_id;
-            return { id: m.id, created_at: m.created_at, other: profileMap.get(otherId) };
-          }));
-        }
-
-        // Charger les visiteurs de mon profil
-        const { data: visitsData, error: visitsError } = await supabase
-          .from("profile_visits")
-          .select("id, visitor_id, created_at")
-          .eq("visited_id", user.id)
-          .order("created_at", { ascending: false })
-          .limit(50);
-
-        if (visitsError) console.error("[demandes] visites:", visitsError);
-
-        const visibleVisits = (visitsData ?? []).filter((v: any) => !hidden.has(v.visitor_id));
-
-        if (visibleVisits.length > 0) {
-          const visitorIds = visibleVisits.map((v: any) => v.visitor_id);
-          const { data: visitorProfiles } = await supabase
-            .from("profiles")
-            .select("id, first_name, last_name, birth_date, city, photos")
-            .in("id", visitorIds);
-
-          const visitorMap = new Map(visitorProfiles?.map((p: any) => [p.id, p]));
-          setVisits(
-            visibleVisits.map((v: any) => ({
-              id: v.id,
-              created_at: v.created_at,
-              visitor: visitorMap.get(v.visitor_id) ?? null,
-            })),
-          );
-        }
-      } catch (err) {
-        console.error("Erreur chargement demandes:", err);
-      } finally {
-        setLoading(false);
-      }
-    }
-    load();
-  }, []);
-
-  const removeFromLists = (id: string) => {
-    setLikes((prev) => prev.filter((l) => l.id !== id));
-    setSuperlikes((prev) => prev.filter((l) => l.id !== id));
+    if (!res.ok) { toast.error(RAISONS[(res as any).raison] ?? "Annulation impossible"); return; }
+    toast.success("Demande annulée");
+    charger();
   };
 
-  const acceptLike = async (entry: LikeEntry) => {
-    const user = await getCurrentUser();
-    if (!user) return;
-
-    // upsert : si j'avais déjà swipé cette personne, on ne veut pas d'erreur
-    // de contrainte d'unicité silencieuse (l'ancien code ignorait le résultat).
-    const { error } = await supabase.from("swipes").upsert(
-      { swiper_id: user.id, target_id: entry.swiper_id, action: "like" },
-      { onConflict: "swiper_id,target_id" },
-    );
-
-    if (error) {
-      console.error("[demandes] acceptation:", error);
-      toast.error("Erreur lors de l'action");
-      return;
-    }
-
-    // Le match est créé côté base par le trigger on_swipe_create_match
-    toast.success(`C'est un match avec ${entry.profile?.first_name} ! 🎉`);
-    removeFromLists(entry.id);
+  const bloquer = async (dem: Demande) => {
+    if (!confirm(`Bloquer ${dem.prenom} ?`)) return;
+    const ok = await blockUser(dem.autre_id);
+    if (!ok) { toast.error("Le blocage n'a pas pu être enregistré"); return; }
+    toast.success(`${dem.prenom} a été bloqué`);
+    charger();
   };
 
-  const handleDismiss = async (entry: LikeEntry) => {
-    removeFromLists(entry.id);
-    const ok = await dismissLike(entry.swiper_id);
-    toast.info(ok ? "Refusé" : "Refusé (non enregistré)");
-  };
+  /* ── Affichage ── */
 
-  const handleBlock = async (entry: LikeEntry) => {
-    removeFromLists(entry.id);
-    const ok = await blockUser(entry.swiper_id);
-    if (ok) toast.success(`${entry.profile?.first_name} a été bloqué`);
-    else toast.error("Le blocage n'a pas pu être enregistré");
-  };
+  const liste = !d ? [] : onglet === "recues" ? d.recues
+                        : onglet === "envoyees" ? d.envoyees : d.contacts;
 
-  // Le signalement passe désormais par un dialogue : sans motif, la
-  // modération ne savait ni quoi vérifier ni quelle urgence accorder.
-  const handleReport = (entry: LikeEntry) => {
-    setReportTarget({
-      id: entry.swiper_id,
-      name: entry.profile?.first_name ?? undefined,
-    });
-  };
+  // Un contact n'a qu'un état : le filtrer par statut n'aurait aucun sens.
+  const filtresVisibles = onglet === "contacts" ? [] : FILTRES;
 
-  const currentList = active === "like" ? likes : active === "superlike" ? superlikes : [];
-  const showMatches = active === "match";
-  const showVisits = active === "visit";
+  const visibles = filtre === "toutes" || filtresVisibles.length === 0
+    ? liste
+    : liste.filter(x => x.statut === filtre);
 
   return (
-    <div className="px-4 pt-4">
-      <h1 className="font-serif text-2xl font-semibold">Demandes</h1>
-      <p className="text-xs text-muted-foreground mb-4">
-        Consultez qui s'intéresse à votre profil.
-      </p>
+    <div className="px-4 pt-4 pb-8">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="font-serif text-2xl font-semibold flex items-center gap-2">
+            Demandes <Heart className="w-5 h-5 text-primary" />
+          </h1>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Gérez vos demandes et vos contacts
+          </p>
+        </div>
+        <Link
+          to="/decouvrir"
+          className="shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-primary/10 text-primary text-sm font-semibold hover:bg-primary/15 transition-colors"
+        >
+          <Search className="w-4 h-4" /> Découvrir
+        </Link>
+      </div>
 
-      {/* Tabs */}
-      <div className="flex gap-2 overflow-x-auto pb-2 mb-4 -mx-4 px-4 scrollbar-none">
-        {tabs.map((t) => {
-          const Icon = t.icon;
-          const on = active === t.id;
+      <div className="mt-4 grid grid-cols-3 gap-1 p-1 rounded-2xl bg-secondary/60">
+        {ONGLETS.map(o => {
+          const n = !d ? 0
+            : o.id === "recues" ? d.recues.length
+            : o.id === "envoyees" ? d.envoyees.length : d.contacts.length;
+          const actif = onglet === o.id;
           return (
             <button
-              key={t.id}
-              onClick={() => setActive(t.id)}
-              className={`shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-medium border transition-all ${
-                on
-                  ? "bg-primary text-primary-foreground border-primary shadow-elegant"
-                  : "bg-background text-foreground border-border hover:border-primary/40"
-              }`}
+              key={o.id}
+              onClick={() => { setOnglet(o.id); setFiltre("toutes"); }}
+              className={`flex items-center justify-center gap-1.5 px-2 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
+                actif ? "bg-primary text-primary-foreground shadow-soft"
+                      : "text-muted-foreground hover:text-foreground"}`}
             >
-              <Icon className="w-3.5 h-3.5" />
-              {t.label}
-              {/* Le cadenas suit le verrou réel de CHAQUE onglet. Il
-                  s'affichait auparavant sur les trois dès que
-                  `seeAdmirers` était faux — y compris sur « Visiteurs »,
-                  dont l'accès dépend d'un autre droit. */}
-              {tabVerrouille(t.id) && <Lock className="w-3 h-3 opacity-70" />}
+              <o.icone className="w-4 h-4 shrink-0" />
+              <span className="truncate">{o.label}</span>
+              <span className={`text-[10px] rounded-full px-1.5 py-0.5 tabular-nums ${
+                actif ? "bg-primary-foreground/20" : "bg-background"}`}>
+                {n}
+              </span>
             </button>
           );
         })}
       </div>
 
-      {loading ? (
-        <div className="grid grid-cols-2 gap-3">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="aspect-[3/4] rounded-2xl bg-secondary animate-pulse" />
+      {filtresVisibles.length > 0 && (
+        <div className="mt-3 flex gap-1 p-1 rounded-2xl bg-secondary/60 overflow-x-auto scrollbar-none">
+          {filtresVisibles.map(f => (
+            <button
+              key={f.id}
+              onClick={() => setFiltre(f.id)}
+              className={`shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-medium transition-colors ${
+                filtre === f.id ? "bg-primary text-primary-foreground shadow-soft"
+                                : "text-muted-foreground hover:text-foreground"}`}
+            >
+              <f.icone className="w-3.5 h-3.5" /> {f.label}
+            </button>
           ))}
         </div>
-      ) : isPremiumLocked ? (
-        <PremiumGate
-          tab={active}
-          count={active === "visit" ? visits.length : active === "superlike" ? superlikes.length : likes.length}
-        />
-      ) : showVisits ? (
-        visits.length === 0 ? (
-          <EmptyState message="Personne n'a encore visité votre profil." />
-        ) : (
-          <div className="grid grid-cols-2 gap-3">
-            {visits.map((v, i) => (
-              <motion.div
-                key={v.id}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.04 }}
-                className="rounded-2xl overflow-hidden bg-card border border-border/50 shadow-soft"
-              >
-                <div className="relative aspect-[3/4]">
-                  <CardPhoto src={v.visitor?.photos?.[0]} name={v.visitor?.first_name || "Membre"} />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-transparent" />
-                  <span className="absolute top-2 left-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-background/90 text-foreground text-[10px] font-semibold">
-                    <Eye className="w-3 h-3" /> {timeAgo(v.created_at)}
-                  </span>
-                  <div className="absolute inset-x-0 bottom-0 p-2.5 text-white">
-                    {/* `truncate` plutôt qu'un retour à la ligne : ces
-                        vignettes font deux par ligne sur mobile, un nom
-                        composé y tiendrait sur trois lignes. */}
-                    <div className="font-serif text-base font-semibold leading-tight truncate">
-                      {displayName(v.visitor?.first_name, v.visitor?.last_name)}
-                      {getAge(v.visitor?.birth_date || null) > 0 && `, ${getAge(v.visitor?.birth_date || null)}`}
-                    </div>
-                    <div className="text-[10px] opacity-90 mt-0.5">{v.visitor?.city}</div>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        )
-      ) : showMatches ? (
-        matches.length === 0 ? (
-          <EmptyState message="Pas encore de match. Continuez à swiper !" />
-        ) : (
-          <div className="grid grid-cols-2 gap-3">
-            {matches.map((m, i) => (
-              <motion.div
-                key={m.id}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.04 }}
-                className="rounded-2xl overflow-hidden bg-card border border-border/50 shadow-soft cursor-pointer"
-                onClick={() => navigate({ to: "/messages", search: { conversation: m.id } as any })}
-              >
-                <div className="relative aspect-[3/4]">
-                  <CardPhoto src={m.other?.photos?.[0]} name={m.other?.first_name || "Membre"} />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-transparent" />
-                  <span className="absolute top-2 left-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary text-primary-foreground text-[10px] font-semibold">
-                    <Sparkles className="w-3 h-3" /> Match !
-                  </span>
-                  <div className="absolute inset-x-0 bottom-0 p-2.5 text-white">
-                    <div className="font-serif text-base font-semibold leading-tight truncate">
-                      {displayName(m.other?.first_name, m.other?.last_name)}
-                      {getAge(m.other?.birth_date || null) > 0 && `, ${getAge(m.other?.birth_date || null)}`}
-                    </div>
-                    <div className="text-[10px] opacity-90 mt-0.5">{m.other?.city}</div>
-                  </div>
-                </div>
-                <div className="p-2.5 border-t border-border/60">
-                  <button className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-xl bg-primary/10 text-primary text-xs font-semibold">
-                    <MessageCircle className="w-3.5 h-3.5" /> Envoyer un message
-                  </button>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        )
-      ) : currentList.length === 0 ? (
-        <EmptyState message="Rien à afficher ici pour l'instant." />
+      )}
+
+      {!d ? (
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          {[0, 1].map(i => <div key={i} className="h-36 rounded-2xl bg-secondary animate-pulse" />)}
+        </div>
+      ) : visibles.length === 0 ? (
+        <Vide onglet={onglet} filtre={filtre} />
       ) : (
-        <div className="grid grid-cols-2 gap-3">
-          {currentList.map((r, i) => (
-            <LikeCard
-              key={r.id}
-              entry={r}
-              delay={i * 0.03}
-              onAccept={acceptLike}
-              onDismiss={handleDismiss}
-              onBlock={handleBlock}
-              onReport={handleReport}
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          {visibles.map((x, i) => (
+            <Carte
+              key={x.id}
+              d={x}
+              delai={i * 0.03}
+              onglet={onglet}
+              busy={busy === x.id}
+              onAccepter={() => repondre(x, true)}
+              onRefuser={() => repondre(x, false)}
+              onAnnuler={() => annuler(x)}
+              onBloquer={() => bloquer(x)}
+              onSignaler={() => setSignaler({ id: x.autre_id, name: x.prenom })}
+              onVoir={() => setApercu(x)}
+              onMessage={() => navigate({ to: "/messages" })}
             />
           ))}
         </div>
       )}
 
+      {apercu && <Apercu d={apercu} onClose={() => setApercu(null)} />}
+
       <ReportDialog
-        open={!!reportTarget}
-        onOpenChange={o => !o && setReportTarget(null)}
-        reportedId={reportTarget?.id ?? ""}
-        reportedName={reportTarget?.name}
+        open={!!signaler}
+        onOpenChange={o => !o && setSignaler(null)}
+        reportedId={signaler?.id ?? ""}
+        reportedName={signaler?.name}
         context="profile"
       />
     </div>
   );
 }
 
-function LikeCard({
-  entry,
-  delay,
-  onAccept,
-  onDismiss,
-  onBlock,
-  onReport,
+/* ─────────────── Carte ─────────────── */
+
+const CHIPS: Record<StatutDemande, { label: string; classe: string; icone: any }> = {
+  pending:  { label: "En attente", classe: "bg-gold/15 text-gold-foreground", icone: Hourglass },
+  accepted: { label: "Acceptée",   classe: "bg-emerald-500/15 text-emerald-600", icone: CheckCircle2 },
+  refused:  { label: "Refusée",    classe: "bg-destructive/10 text-destructive", icone: XCircle },
+};
+
+function Carte({
+  d, delai, onglet, busy,
+  onAccepter, onRefuser, onAnnuler, onBloquer, onSignaler, onVoir, onMessage,
 }: {
-  entry: LikeEntry;
-  delay: number;
-  onAccept: (e: LikeEntry) => void;
-  onDismiss: (e: LikeEntry) => void;
-  onBlock: (e: LikeEntry) => void;
-  onReport: (e: LikeEntry) => void;
+  d: Demande;
+  delai: number;
+  onglet: Onglet;
+  busy: boolean;
+  onAccepter: () => void;
+  onRefuser: () => void;
+  onAnnuler: () => void;
+  onBloquer: () => void;
+  onSignaler: () => void;
+  onVoir: () => void;
+  onMessage: () => void;
 }) {
+  const chip = CHIPS[d.statut];
+  const a = age(d.naissance);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay }}
-      className="rounded-2xl overflow-hidden bg-card border border-border/50 shadow-soft"
+      transition={{ delay: delai }}
+      className="rounded-2xl bg-card border border-border/60 shadow-soft overflow-hidden"
     >
-      <div className="relative aspect-[3/4]">
-        <CardPhoto src={entry.profile?.photos?.[0]} name={entry.profile?.first_name || "Membre"} />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-transparent" />
-        {entry.action === "superlike" && (
-          <div className="absolute top-2 inset-x-2 flex flex-col gap-1.5 items-start">
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-primary text-primary-foreground text-[10px] font-semibold shadow-soft">
-              <Star className="w-3 h-3" fill="currentColor" /> Super Like
+      <div className="p-3.5 flex items-start gap-3">
+        <button onClick={onVoir} className="shrink-0" aria-label="Voir le profil">
+          <span className="block w-14 h-14 rounded-full p-[2px] bg-gradient-to-br from-primary to-gold">
+            <span className="block w-full h-full rounded-full overflow-hidden bg-background">
+              {d.photos?.[0]
+                ? <img src={d.photos[0]} alt={d.prenom} className="w-full h-full object-cover" loading="lazy" />
+                : <span className="w-full h-full flex items-center justify-center font-serif text-xl font-semibold text-primary">
+                    {(d.prenom || "?").charAt(0).toUpperCase()}
+                  </span>}
             </span>
-            <div className="bg-primary/95 text-primary-foreground text-[10px] px-2.5 py-1.5 rounded-xl leading-snug shadow-elegant backdrop-blur-sm border border-primary-foreground/20">
-              Cette personne a eu un énorme coup de cœur pour toi
+          </span>
+        </button>
+
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between gap-2">
+            <div className="font-semibold truncate flex items-center gap-1">
+              <span className="truncate">
+                {displayName(d.prenom, d.nom)}{a > 0 && <span className="font-normal">, {a}</span>}
+              </span>
+              {d.verifie && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />}
             </div>
+            {onglet !== "contacts" && (
+              <span className={`shrink-0 inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full ${chip.classe}`}>
+                <chip.icone className="w-3 h-3" /> {chip.label}
+              </span>
+            )}
           </div>
-        )}
-        <div className="absolute inset-x-0 bottom-0 p-2.5 text-white">
-          <div className="font-serif text-base font-semibold leading-tight truncate">
-            {displayName(entry.profile?.first_name, entry.profile?.last_name)}
-            {getAge(entry.profile?.birth_date || null) > 0 && `, ${getAge(entry.profile?.birth_date || null)}`}
+
+          <div className="flex items-center gap-3 mt-1 text-[11px] text-muted-foreground">
+            {d.ville && (
+              <span className="inline-flex items-center gap-1 min-w-0">
+                <MapPin className="w-3 h-3 shrink-0" /> <span className="truncate">{d.ville}</span>
+              </span>
+            )}
+            <span className="inline-flex items-center gap-1 shrink-0">
+              <Clock className="w-3 h-3" /> {ilYA(d.created_at)}
+            </span>
           </div>
-          <div className="text-[10px] opacity-90 mt-0.5">{entry.profile?.city}</div>
+
+          {/* Le mot joint pèse plus que tout le reste dans la décision.
+              Il ne devait pas rester caché derrière « Voir profil ». */}
+          {d.message && (
+            <p className="mt-2 text-[11px] text-muted-foreground bg-secondary/60 rounded-lg px-2.5 py-1.5 flex gap-1.5">
+              <Quote className="w-3 h-3 shrink-0 mt-0.5 opacity-50" />
+              <span className="line-clamp-2 italic">{d.message}</span>
+            </p>
+          )}
         </div>
       </div>
-      <div className="grid grid-cols-4 divide-x divide-border/60 border-t border-border/60">
-        <button aria-label="Accepter" onClick={() => onAccept(entry)} className="py-2.5 flex items-center justify-center hover:bg-secondary/60 transition-colors text-emerald-500">
-          <Check className="w-4 h-4" />
-        </button>
-        <button aria-label="Refuser" onClick={() => onDismiss(entry)} className="py-2.5 flex items-center justify-center hover:bg-secondary/60 transition-colors text-destructive">
-          <X className="w-4 h-4" />
-        </button>
-        <button aria-label="Signaler" onClick={() => onReport(entry)} className="py-2.5 flex items-center justify-center hover:bg-secondary/60 transition-colors text-muted-foreground">
-          <Flag className="w-4 h-4" />
-        </button>
-        <button aria-label="Bloquer" onClick={() => onBlock(entry)} className="py-2.5 flex items-center justify-center hover:bg-secondary/60 transition-colors text-muted-foreground">
-          <Ban className="w-4 h-4" />
-        </button>
+
+      <div className="grid grid-cols-2 gap-2 px-3.5 pb-3.5">
+        {onglet === "recues" && d.statut === "pending" && (
+          <>
+            <Bouton onClick={onRefuser} busy={busy} ton="rouge" icone={X} label="Refuser" />
+            <Bouton onClick={onAccepter} busy={busy} ton="vert" icone={Check} label="Accepter" />
+          </>
+        )}
+
+        {onglet === "envoyees" && d.statut === "pending" && (
+          <>
+            <Bouton onClick={onAnnuler} busy={busy} ton="rouge" icone={X} label="Annuler" />
+            <Bouton onClick={onVoir} ton="doux" icone={ArrowRight} label="Voir profil" />
+          </>
+        )}
+
+        {(onglet === "contacts" || d.statut === "accepted") && (
+          <>
+            <Bouton onClick={onVoir} ton="doux" icone={ArrowRight} label="Voir profil" />
+            <Bouton onClick={onMessage} ton="plein" icone={MessageCircle} label="Message" />
+          </>
+        )}
+
+        {onglet === "recues" && d.statut === "refused" && (
+          <>
+            <Bouton onClick={onSignaler} ton="neutre" icone={Flag} label="Signaler" />
+            <Bouton onClick={onBloquer} ton="neutre" icone={Ban} label="Bloquer" />
+          </>
+        )}
+
+        {onglet === "envoyees" && d.statut === "refused" && (
+          <div className="col-span-2 text-[11px] text-muted-foreground text-center py-2">
+            Cette personne n'a pas donné suite.
+          </div>
+        )}
       </div>
     </motion.div>
   );
 }
 
-function EmptyState({ message }: { message: string }) {
+function Bouton({
+  onClick, ton, icone: Icone, label, busy,
+}: {
+  onClick: () => void;
+  ton: "rouge" | "vert" | "doux" | "plein" | "neutre";
+  icone: any;
+  label: string;
+  busy?: boolean;
+}) {
+  const classes = {
+    rouge:  "bg-destructive/10 text-destructive hover:bg-destructive/15",
+    vert:   "bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/15",
+    doux:   "bg-primary/10 text-primary hover:bg-primary/15",
+    plein:  "bg-primary text-primary-foreground hover:opacity-90",
+    neutre: "bg-secondary text-muted-foreground hover:bg-secondary/70",
+  }[ton];
+
   return (
-    <div className="rounded-2xl border border-dashed border-border py-16 text-center text-sm text-muted-foreground">
-      {message}
+    <button
+      onClick={onClick}
+      disabled={busy}
+      className={`inline-flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold transition-colors disabled:opacity-50 ${classes}`}
+    >
+      <Icone className="w-3.5 h-3.5" /> {label}
+    </button>
+  );
+}
+
+/* ─────────────── États vides ─────────────── */
+
+function Vide({ onglet, filtre }: { onglet: Onglet; filtre: Filtre }) {
+  const textes: Record<Onglet, { titre: string; sous: string }> = {
+    recues:   { titre: "Aucune demande reçue", sous: "Les nouvelles demandes apparaîtront ici" },
+    envoyees: { titre: "Aucune demande envoyée", sous: "Ajoutez un membre depuis son profil" },
+    contacts: { titre: "Aucun contact", sous: "Vos demandes acceptées apparaîtront ici" },
+  };
+
+  const t = filtre !== "toutes"
+    ? { titre: "Rien dans ce filtre", sous: "Essayez « Toutes » pour voir l'ensemble" }
+    : textes[onglet];
+
+  const Icone = onglet === "recues" ? Inbox : onglet === "envoyees" ? Send : UserCheck;
+
+  return (
+    <div className="mt-4 rounded-2xl bg-card border border-border/60 py-14 px-6 text-center">
+      <div className="w-16 h-16 rounded-full bg-primary/10 mx-auto flex items-center justify-center">
+        <Icone className="w-7 h-7 text-primary" />
+      </div>
+      <h3 className="font-semibold mt-4">{t.titre}</h3>
+      <p className="text-sm text-muted-foreground mt-1">{t.sous}</p>
+      <Link
+        to="/decouvrir"
+        className="mt-5 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary/10 text-primary text-sm font-semibold hover:bg-primary/15 transition-colors"
+      >
+        <Search className="w-4 h-4" /> Découvrir des profils
+      </Link>
     </div>
   );
 }
 
-function PremiumGate({ count = 0, tab }: { count?: number; tab?: TabId }) {
-  const label =
-    tab === "visit"
-      ? "personne n'a encore regardé votre profil"
-      : tab === "superlike"
-        ? "aucun Super Like reçu pour l'instant"
-        : "personne ne vous a encore aimé";
+/* ─────────────── Aperçu ─────────────── */
 
-  const teaser =
-    tab === "visit"
-      ? `${count} membre${count > 1 ? "s ont" : " a"} récemment regardé votre profil`
-      : tab === "superlike"
-        ? `${count} Super Like${count > 1 ? "s" : ""} vous attend${count > 1 ? "ent" : ""}`
-        : `${count} membre${count > 1 ? "s vous ont" : " vous a"} aimé`;
+/**
+ * Volontairement sobre : de quoi décider, pas davantage.
+ *
+ * Deux vues de profil complètes existent déjà — /accueil et /decouvrir —
+ * et elles ont divergé. En ajouter une troisième aussi fournie ne ferait
+ * qu'aggraver l'écart.
+ */
+function Apercu({ d, onClose }: { d: Demande; onClose: () => void }) {
+  const a = age(d.naissance);
 
   return (
-    <div className="rounded-3xl overflow-hidden relative">
-      <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary/85 to-primary/70" />
-      <div className="relative p-8 text-center text-primary-foreground">
-        <div className="w-14 h-14 rounded-full bg-gold text-gold-foreground mx-auto flex items-center justify-center shadow-elegant">
-          <Lock className="w-6 h-6" />
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="fixed inset-0 z-50 bg-background/95 backdrop-blur-sm overflow-y-auto"
+      onClick={onClose}
+    >
+      <div className="min-h-full max-w-md mx-auto bg-background pb-16"
+           onClick={e => e.stopPropagation()}>
+        <div className="relative aspect-[3/4]">
+          {d.photos?.[0]
+            ? <img src={d.photos[0]} alt={d.prenom} className="w-full h-full object-cover" />
+            : <div className="w-full h-full bg-gradient-to-br from-primary/25 to-gold/25 flex items-center justify-center font-serif text-6xl font-semibold text-primary">
+                {(d.prenom || "?").charAt(0).toUpperCase()}
+              </div>}
+          <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
+          <button
+            onClick={onClose}
+            className="absolute top-4 right-4 w-10 h-10 rounded-full bg-black/40 backdrop-blur flex items-center justify-center text-white"
+            aria-label="Fermer"
+          >
+            <X className="w-5 h-5" />
+          </button>
+          <div className="absolute bottom-0 inset-x-0 p-5">
+            <h2 className="font-serif text-3xl font-bold flex items-center gap-2">
+              {displayName(d.prenom, d.nom)}{a > 0 && `, ${a}`}
+              {d.verifie && <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />}
+            </h2>
+            {d.ville && (
+              <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
+                <MapPin className="w-3.5 h-3.5" /> {d.ville}
+              </p>
+            )}
+          </div>
         </div>
 
-        {/* L'aperçu chiffré : on dit COMBIEN, pas QUI. C'est ce qui donne
-            envie de s'abonner, et ça reste honnête. */}
-        <div className="font-serif text-3xl font-semibold mt-4">
-          {count > 0 ? count : "—"}
-        </div>
-        <p className="text-sm opacity-95 mt-1">{count > 0 ? teaser : label}</p>
+        {(d.photos?.length ?? 0) > 1 && (
+          <div className="flex gap-2 px-5 pt-4 overflow-x-auto scrollbar-none">
+            {d.photos!.slice(1).map((ph, i) => (
+              <img key={i} src={ph} alt="" loading="lazy"
+                   className="w-24 h-32 rounded-xl object-cover shrink-0" />
+            ))}
+          </div>
+        )}
 
-        <h3 className="font-serif text-xl mt-4">Découvrez qui c'est</h3>
-        <p className="text-sm opacity-90 mt-1.5 max-w-sm mx-auto">
-          Passez Premium pour voir leurs profils et répondre à leur intérêt.
-        </p>
-        <Link
-          to="/abonnement"
-          className="mt-5 inline-flex px-6 py-2.5 rounded-full bg-gold text-gold-foreground font-semibold shadow-elegant"
-        >
-          Devenir Premium
-        </Link>
+        {d.bio && (
+          <div className="px-5 pt-5">
+            <h3 className="font-serif text-lg font-semibold mb-2">À propos</h3>
+            <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
+              {d.bio}
+            </p>
+          </div>
+        )}
       </div>
-    </div>
+    </motion.div>
   );
 }

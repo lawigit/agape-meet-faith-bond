@@ -17,7 +17,7 @@ import { formatPrice } from "@/lib/plans";
 import { displayName } from "@/lib/utils";
 import {
   DEFAULT_FILTERS, PAGE_SIZE, SEGMENTS, OFFER_LABELS,
-  fetchCounts, fetchUsers, downloadCsv, isSuspended, unsuspendUser,
+  fetchCounts, fetchUsers, downloadCsv, isSuspended, unsuspendUser, certifyUser,
   type Counts, type Filters, type UserRow,
 } from "@/lib/adminUsers";
 import { UserDetailSheet } from "@/components/admin/UserDetailSheet";
@@ -87,8 +87,10 @@ function AdminUtilisateurs() {
   const actifs = [f.segment, f.gender, f.country, f.verified].filter(v => v !== null).length;
 
   const verifyUser = async (id: string) => {
-    const { error: err } = await supabase.from("profiles").update({ is_verified: true }).eq("id", id);
-    if (err) { toast.error("La certification a échoué"); return; }
+    // L'état local n'est mis à jour QU'APRÈS confirmation par la base.
+    // L'inverse affichait un badge sur un profil resté non certifié.
+    const res = await certifyUser(id, true);
+    if (!res.ok) { toast.error("La certification a échoué"); return; }
     setUsers(prev => prev.map(u => (u.id === id ? { ...u, is_verified: true } : u)));
     toast.success("Profil certifié");
   };

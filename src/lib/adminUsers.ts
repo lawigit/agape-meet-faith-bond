@@ -207,6 +207,26 @@ export async function unsuspendUser(userId: string) {
   return res;
 }
 
+/**
+ * Certifier un profil, ou lui retirer son badge.
+ *
+ * Passe par une fonction et non par un `update()` direct sur `profiles`.
+ * Un refus de la RLS ne lève AUCUNE erreur : PostgREST renvoie « 0 ligne
+ * modifiée ». L'écriture directe annonçait donc un succès même quand
+ * rien n'était écrit, et l'échec ne se découvrait qu'au rechargement.
+ */
+export async function certifyUser(userId: string, verifie = true) {
+  const { data, error } = await supabase.rpc("admin_certifier_profil", {
+    p_user: userId, p_verifie: verifie,
+  });
+
+  if (error) {
+    console.error("[admin/certification]", error);
+    return { ok: false, reason: error.message };
+  }
+  return data as { ok: boolean; raison?: string; verifie?: boolean };
+}
+
 /** Une suspension à plus de dix ans vaut « définitive » côté affichage. */
 export function isSuspended(u: { suspended_until?: string | null }): boolean {
   return Boolean(u.suspended_until) && new Date(u.suspended_until!).getTime() > Date.now();
