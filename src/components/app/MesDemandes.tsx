@@ -204,38 +204,39 @@ export function MesDemandes() {
   const superVerrouille = !features.seeAdmirers;
   const visitesVerrouillees = !features.visitors;
 
-  const rienAMontrer =
-    likes.length === 0 &&
-    (superlikes.length === 0 && !superVerrouille) &&
-    (visites.length === 0 && !visitesVerrouillees);
-
-  if (rienAMontrer) return null;
+  /* Les trois rubriques sont TOUJOURS affichées, même à zéro.
+     Les masquer quand elles sont vides — ce que je faisais — laissait
+     l'accueil sans aucune trace d'elles sur un compte neuf : impossible
+     de savoir que ces listes existent, ni où les retrouver quand elles
+     se rempliront. Une ligne « Personne pour l'instant » occupe deux
+     centimètres et répond à la question. */
 
   return (
     <div className="px-4 space-y-6">
       {/* « M'ont aimé » est ouvert à tous : voir qu'on plaît est ce qui
           fait revenir, et le verrouiller sur un compte neuf ne laisserait
           qu'un cadenas devant une liste vide. */}
-      {likes.length > 0 && (
-        <Bloc titre="M'ont aimé" icone={Heart} n={likes.length}>
-          {(visibles) => (
-            <Grille>
-              {likes.slice(0, visibles).map((l, i) => (
-                <CarteLike key={l.id} entry={l} delai={i * 0.03}
-                           onAccepter={accepter} onRefuser={refuser}
-                           onBloquer={bloquer}
-                           onSignaler={() => setSignaler({ id: l.swiper_id, name: l.profile?.first_name })} />
-              ))}
-            </Grille>
-          )}
-        </Bloc>
-      )}
+      <Bloc titre="M'ont aimé" icone={Heart} n={likes.length}>
+        {(visibles) => (
+          likes.length === 0
+            ? <Rien texte="Personne ne vous a encore aimé." />
+            : <Grille>
+                {likes.slice(0, visibles).map((l, i) => (
+                  <CarteLike key={l.id} entry={l} delai={i * 0.03}
+                             onAccepter={accepter} onRefuser={refuser}
+                             onBloquer={bloquer}
+                             onSignaler={() => setSignaler({ id: l.swiper_id, name: l.profile?.first_name })} />
+                ))}
+              </Grille>
+        )}
+      </Bloc>
 
-      {(superlikes.length > 0 || superVerrouille) && (
-        <Bloc titre="Super Likes" icone={Star} n={superlikes.length}>
-          {(visibles) => (
-            superVerrouille
-              ? <Verrou n={superlikes.length} type="superlike" />
+      <Bloc titre="Super Likes" icone={Star} n={superlikes.length}>
+        {(visibles) => (
+          superVerrouille
+            ? <Verrou n={superlikes.length} type="superlike" />
+            : superlikes.length === 0
+              ? <Rien texte="Aucun Super Like reçu pour l'instant." />
               : <Grille>
                   {superlikes.slice(0, visibles).map((l, i) => (
                     <CarteLike key={l.id} entry={l} delai={i * 0.03}
@@ -244,16 +245,16 @@ export function MesDemandes() {
                                onSignaler={() => setSignaler({ id: l.swiper_id, name: l.profile?.first_name })} />
                   ))}
                 </Grille>
-          )}
-        </Bloc>
-      )}
+        )}
+      </Bloc>
 
-      {(visites.length > 0 || visitesVerrouillees) && (
-        <Bloc titre="Visiteurs" icone={Eye} n={visites.length}
-              verrouille={visitesVerrouillees}>
-          {(visibles) => (
-            visitesVerrouillees
-              ? <Verrou n={visites.length} type="visit" />
+      <Bloc titre="Visiteurs" icone={Eye} n={visites.length}
+            verrouille={visitesVerrouillees}>
+        {(visibles) => (
+          visitesVerrouillees
+            ? <Verrou n={visites.length} type="visit" />
+            : visites.length === 0
+              ? <Rien texte="Personne n'a encore regardé votre profil." />
               : <Grille>
                   {visites.slice(0, visibles).map((v, i) => (
                     <motion.div
@@ -280,9 +281,8 @@ export function MesDemandes() {
                     </motion.div>
                   ))}
                 </Grille>
-          )}
-        </Bloc>
-      )}
+        )}
+      </Bloc>
 
       <ReportDialog
         open={!!signaler}
@@ -343,6 +343,20 @@ function Bloc({
 
 function Grille({ children }: { children: React.ReactNode }) {
   return <div className="grid grid-cols-2 gap-3">{children}</div>;
+}
+
+/**
+ * Rubrique vide — une ligne, pas un grand cadre.
+ *
+ * Trois encarts vides empilés donneraient un accueil désert. Une phrase
+ * discrète suffit à dire que la rubrique existe et attend.
+ */
+function Rien({ texte }: { texte: string }) {
+  return (
+    <p className="rounded-xl bg-secondary/50 px-3.5 py-3 text-xs text-muted-foreground">
+      {texte}
+    </p>
+  );
 }
 
 function CarteLike({
