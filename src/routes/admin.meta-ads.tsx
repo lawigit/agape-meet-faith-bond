@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
+import { MetaDemographie } from "@/components/admin/MetaDemographie";
 import { formatPrice } from "@/lib/plans";
 
 export const Route = createFileRoute("/admin/meta-ads")({
@@ -178,7 +179,15 @@ function AdminMetaAds() {
           {onglet === "vue" && <Vue d={d} pixelOk={pixelOk} capiOk={capiOk} enProd={enProd} />}
           {onglet === "pixel" && <Pixel reglages={reglages} onSave={() => charger(jours)} />}
           {onglet === "evenements" && <Evenements d={d} />}
-          {onglet === "audiences" && <Audiences d={d} />}
+          {/* Les répartitions rejoignent « Audiences » : c'est l'onglet
+              où l'on décide qui cibler, et il n'y avait jusqu'ici aucun
+              chiffre sur qui répond réellement aux publicités. */}
+          {onglet === "audiences" && (
+            <div className="space-y-5">
+              <Audiences d={d} />
+              <MetaDemographie jours={jours} />
+            </div>
+          )}
           {onglet === "utm" && <Utm d={d} />}
           {onglet === "attribution" && <Attribution d={d} />}
           {onglet === "rapports" && <Rapports d={d} />}
