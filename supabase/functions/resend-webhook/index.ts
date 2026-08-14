@@ -90,6 +90,33 @@ serve(async (req: Request) => {
 
     const supabase = createClient(SUPABASE_URL, SERVICE_KEY);
 
+    /* ── Journalisation, AVANT tout tri ──
+       Chaque événement est conservé : délivré, ouvert, cliqué, rejeté,
+       dénoncé, retardé. Auparavant tout ce qui n'était ni rebond dur ni
+       plainte repartait sans laisser de trace — on savait qu'un e-mail
+       était parti, jamais s'il était arrivé ni s'il avait été lu.
+
+       On ne garde du détail que le strict utile. La charge complète de
+       Resend contient le corps du message : le stocker reviendrait à
+       constituer une copie de toute la correspondance envoyée. */
+    const detail: Record<string, unknown> = {};
+    const raison = event?.data?.bounce?.type ?? event?.data?.bounce?.subType;
+    if (raison) detail.raison = String(raison).slice(0, 120);
+    if (event?.data?.click?.link) detail.lien = String(event.data.click.link).slice(0, 300);
+    if (event?.data?.subject) detail.sujet = String(event.data.subject).slice(0, 200);
+
+    const { error: errEvent } = await supabase.from("email_events").insert({
+      resend_id: event?.data?.email_id ?? null,
+      email: email.toLowerCase(),
+      type,
+      detail: Object.keys(detail).length ? detail : null,
+    });
+
+    // Un échec de journalisation ne doit PAS interrompre le traitement :
+    // la suppression d'une adresse en plainte compte davantage qu'une
+    // ligne de statistique.
+    if (errEvent) console.error("[resend-webhook] journal:", errEvent);
+
     // Seuls le rebond DUR et la plainte suppriment définitivement.
     // Un rebond temporaire (boîte pleine, serveur indisponible) ne doit pas
     // priver quelqu'un de ses reçus de paiement.
@@ -98,8 +125,10 @@ serve(async (req: Request) => {
       ["hard", "permanent"].includes(String(event?.data?.bounce?.type ?? "").toLowerCase());
     const isComplaint = type === "email.complained";
 
+    // L'événement est déjà journalisé ci-dessus : on s'arrête ici pour
+    // tout ce qui ne justifie pas de supprimer l'adresse.
     if (!isHardBounce && !isComplaint) {
-      return new Response("Ignored", { status: 200 });
+      return new Response("OK", { status: 200 });
     }
 
     const { error } = await supabase.from("email_suppression").upsert(

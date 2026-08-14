@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { getCurrentUserId } from "@/lib/auth";
 import { formatPrice } from "@/lib/plans";
+import { TracabiliteEmails } from "@/components/admin/TracabiliteEmails";
 
 export const Route = createFileRoute("/admin/marketing")({
   component: AdminMarketing,
@@ -491,7 +492,13 @@ function AdminMarketing() {
             </section>
           </div>
 
-          {/* ══ 7. Historique ══ */}
+          {/* ══ 7. Traçabilité ══
+              Placée AVANT l'historique des campagnes : savoir ce que sont
+              devenus les messages déjà partis pèse plus, au quotidien,
+              que la liste de ce qu'on a envoyé. */}
+          <TracabiliteEmails days={days} />
+
+          {/* ══ 8. Historique ══ */}
           <section>
             <Titre icone={Megaphone} titre="Campagnes passées" />
             {campaigns.length === 0 ? (
