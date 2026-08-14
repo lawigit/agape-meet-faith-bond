@@ -9,6 +9,7 @@ import {
 import { toast } from "sonner";
 import { displayName } from "@/lib/utils";
 import { ReportDialog } from "@/components/app/ReportDialog";
+import { ApercuProfil } from "@/components/app/ApercuProfil";
 import { blockUser } from "@/lib/moderation";
 import {
   fetchDemandes, repondreDemande, annulerDemande, RAISONS,
@@ -158,35 +159,50 @@ function RequestsPage() {
             : o.id === "envoyees" ? d.envoyees.length : d.contacts.length;
           const actif = onglet === o.id;
           return (
+            /* Sur mobile : icône et compteur sur une ligne, libellé en
+               dessous. Sur 360 px de large, trois onglets sur une seule
+               ligne ne laissaient qu'une soixantaine de pixels au texte
+               — « Envoyées » y était coupé. Deux lignes coûtent quinze
+               pixels de hauteur et rendent tout lisible. */
             <button
               key={o.id}
               onClick={() => { setOnglet(o.id); setFiltre("toutes"); }}
-              className={`flex items-center justify-center gap-1.5 px-2 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
+              className={`flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 px-1 py-2 rounded-xl font-semibold transition-colors ${
                 actif ? "bg-primary text-primary-foreground shadow-soft"
                       : "text-muted-foreground hover:text-foreground"}`}
             >
-              <o.icone className="w-4 h-4 shrink-0" />
-              <span className="truncate">{o.label}</span>
-              <span className={`text-[10px] rounded-full px-1.5 py-0.5 tabular-nums ${
-                actif ? "bg-primary-foreground/20" : "bg-background"}`}>
-                {n}
+              <span className="flex items-center gap-1.5">
+                <o.icone className="w-4 h-4 shrink-0" />
+                <span className={`text-[10px] rounded-full px-1.5 py-0.5 tabular-nums ${
+                  actif ? "bg-primary-foreground/20" : "bg-background"}`}>
+                  {n}
+                </span>
               </span>
+              {/* Pas de `truncate` : le libellé doit se lire en entier. */}
+              <span className="text-xs sm:text-sm leading-tight">{o.label}</span>
             </button>
           );
         })}
       </div>
 
+      {/* Quatre filtres en 2 × 2 sur mobile, sur une ligne à partir du
+          format tablette.
+
+          Le défilement horizontal a été retiré : il cachait « Acceptées »
+          et « Refusées » hors écran, sans rien pour le signaler. Un
+          filtre qu'on ne voit pas est un filtre qui n'existe pas. */}
       {filtresVisibles.length > 0 && (
-        <div className="mt-3 flex gap-1 p-1 rounded-2xl bg-secondary/60 overflow-x-auto scrollbar-none">
+        <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-1 p-1 rounded-2xl bg-secondary/60">
           {filtresVisibles.map(f => (
             <button
               key={f.id}
               onClick={() => setFiltre(f.id)}
-              className={`shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-medium transition-colors ${
+              className={`inline-flex items-center justify-center gap-1.5 px-2 py-2 rounded-xl text-xs sm:text-sm font-medium transition-colors ${
                 filtre === f.id ? "bg-primary text-primary-foreground shadow-soft"
                                 : "text-muted-foreground hover:text-foreground"}`}
             >
-              <f.icone className="w-3.5 h-3.5" /> {f.label}
+              <f.icone className="w-3.5 h-3.5 shrink-0" />
+              <span className="leading-tight">{f.label}</span>
             </button>
           ))}
         </div>
@@ -219,7 +235,16 @@ function RequestsPage() {
         </div>
       )}
 
-      {apercu && <Apercu d={apercu} onClose={() => setApercu(null)} />}
+      {apercu && (
+        <ApercuProfil
+          profil={{
+            prenom: apercu.prenom, nom: apercu.nom,
+            ville: apercu.ville, naissance: apercu.naissance,
+            photos: apercu.photos, bio: apercu.bio, verifie: apercu.verifie,
+          }}
+          onClose={() => setApercu(null)}
+        />
+      )}
 
       <ReportDialog
         open={!!signaler}
@@ -412,75 +437,5 @@ function Vide({ onglet, filtre }: { onglet: Onglet; filtre: Filtre }) {
         <Search className="w-4 h-4" /> Découvrir des profils
       </Link>
     </div>
-  );
-}
-
-/* ─────────────── Aperçu ─────────────── */
-
-/**
- * Volontairement sobre : de quoi décider, pas davantage.
- *
- * Deux vues de profil complètes existent déjà — /accueil et /decouvrir —
- * et elles ont divergé. En ajouter une troisième aussi fournie ne ferait
- * qu'aggraver l'écart.
- */
-function Apercu({ d, onClose }: { d: Demande; onClose: () => void }) {
-  const a = age(d.naissance);
-
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="fixed inset-0 z-50 bg-background/95 backdrop-blur-sm overflow-y-auto"
-      onClick={onClose}
-    >
-      <div className="min-h-full max-w-md mx-auto bg-background pb-16"
-           onClick={e => e.stopPropagation()}>
-        <div className="relative aspect-[3/4]">
-          {d.photos?.[0]
-            ? <img src={d.photos[0]} alt={d.prenom} className="w-full h-full object-cover" />
-            : <div className="w-full h-full bg-gradient-to-br from-primary/25 to-gold/25 flex items-center justify-center font-serif text-6xl font-semibold text-primary">
-                {(d.prenom || "?").charAt(0).toUpperCase()}
-              </div>}
-          <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
-          <button
-            onClick={onClose}
-            className="absolute top-4 right-4 w-10 h-10 rounded-full bg-black/40 backdrop-blur flex items-center justify-center text-white"
-            aria-label="Fermer"
-          >
-            <X className="w-5 h-5" />
-          </button>
-          <div className="absolute bottom-0 inset-x-0 p-5">
-            <h2 className="font-serif text-3xl font-bold flex items-center gap-2">
-              {displayName(d.prenom, d.nom)}{a > 0 && `, ${a}`}
-              {d.verifie && <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />}
-            </h2>
-            {d.ville && (
-              <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
-                <MapPin className="w-3.5 h-3.5" /> {d.ville}
-              </p>
-            )}
-          </div>
-        </div>
-
-        {(d.photos?.length ?? 0) > 1 && (
-          <div className="flex gap-2 px-5 pt-4 overflow-x-auto scrollbar-none">
-            {d.photos!.slice(1).map((ph, i) => (
-              <img key={i} src={ph} alt="" loading="lazy"
-                   className="w-24 h-32 rounded-xl object-cover shrink-0" />
-            ))}
-          </div>
-        )}
-
-        {d.bio && (
-          <div className="px-5 pt-5">
-            <h3 className="font-serif text-lg font-semibold mb-2">À propos</h3>
-            <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
-              {d.bio}
-            </p>
-          </div>
-        )}
-      </div>
-    </motion.div>
   );
 }

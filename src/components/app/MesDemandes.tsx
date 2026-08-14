@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { useSubscription } from "@/lib/subscription";
 import { displayName } from "@/lib/utils";
 import { ReportDialog } from "@/components/app/ReportDialog";
+import { ApercuProfil } from "@/components/app/ApercuProfil";
 import {
   blockUser, dismissLike, fetchBlockedIds, fetchDismissedIds,
 } from "@/lib/moderation";
@@ -38,6 +39,7 @@ type Profil = {
   birth_date: string | null;
   city: string | null;
   photos: string[] | null;
+  bio?: string | null;
 };
 
 type LikeEntry = {
@@ -93,6 +95,7 @@ export function MesDemandes() {
   const [visites, setVisites] = useState<VisitEntry[]>([]);
   const [chargement, setChargement] = useState(true);
   const [signaler, setSignaler] = useState<{ id: string; name?: string } | null>(null);
+  const [apercu, setApercu] = useState<Profil | null>(null);
   const { features } = useSubscription();
 
   useEffect(() => {
@@ -108,7 +111,7 @@ export function MesDemandes() {
         const [{ data: swipes }, bloques, ecartes, { data: visits }] = await Promise.all([
           supabase
             .from("swipes")
-            .select("id, swiper_id, action, created_at, profiles!swipes_swiper_id_fkey(id, first_name, last_name, birth_date, city, photos)")
+            .select("id, swiper_id, action, created_at, profiles!swipes_swiper_id_fkey(id, first_name, last_name, birth_date, city, photos, bio)")
             .eq("target_id", user.id)
             .in("action", ["like", "superlike"])
             .order("created_at", { ascending: false }),
@@ -139,7 +142,7 @@ export function MesDemandes() {
         if (vus.length > 0) {
           const { data: profils } = await supabase
             .from("profiles")
-            .select("id, first_name, last_name, birth_date, city, photos")
+            .select("id, first_name, last_name, birth_date, city, photos, bio")
             .in("id", vus.map((v: any) => v.visitor_id));
 
           if (annule) return;
@@ -213,27 +216,26 @@ export function MesDemandes() {
 
   return (
     <div className="px-4 space-y-6">
+      {/* Aucun bouton d'action ici, volontairement : cette rubrique se
+          regarde. Décider — accepter, refuser — se fait après avoir
+          ouvert le profil, pas au survol d'une vignette de seize pixels
+          où la moitié des gestes seraient accidentels. */}
       <BlocAvatars
         titre="M'ont aimé"
         icone={Heart}
         verrouille={superVerrouille}
         vide="Personne ne vous a encore aimé."
         cta="Voir qui vous a aimé"
+        onClic={(p) => {
+          const l = likes.find(x => x.id === p.cle);
+          if (l?.profile) setApercu(l.profile);
+        }}
         personnes={likes.map(l => ({
           cle: l.id,
           photo: l.profile?.photos?.[0],
           prenom: l.profile?.first_name,
         }))}
-      >
-        <Grille>
-          {likes.map((l, i) => (
-            <CarteLike key={l.id} entry={l} delai={i * 0.03}
-                       onAccepter={accepter} onRefuser={refuser}
-                       onBloquer={bloquer}
-                       onSignaler={() => setSignaler({ id: l.swiper_id, name: l.profile?.first_name })} />
-          ))}
-        </Grille>
-      </BlocAvatars>
+      />
 
       <BlocAvatars
         titre="Super Likes"
@@ -297,6 +299,22 @@ export function MesDemandes() {
         </Grille>
       </BlocAvatars>
 
+      {/* Clic sur un visage : la fiche s'ouvre. C'est là, photos et
+          présentation sous les yeux, qu'on se fait une idée. */}
+      {apercu && (
+        <ApercuProfil
+          profil={{
+            prenom: apercu.first_name,
+            nom: apercu.last_name,
+            ville: apercu.city,
+            naissance: apercu.birth_date,
+            photos: apercu.photos,
+            bio: apercu.bio,
+          }}
+          onClose={() => setApercu(null)}
+        />
+      )}
+
       <ReportDialog
         open={!!signaler}
         onOpenChange={o => !o && setSignaler(null)}
@@ -334,7 +352,7 @@ type Personne = { cle: string; photo?: string | null; prenom?: string | null };
  * vous le jour où l'abonné n'en trouverait que trois.
  */
 function BlocAvatars({
-  titre, icone: Icone, verrouille, personnes, vide, cta, children,
+  titre, icone: Icone, verrouille, personnes, vide, cta, onClic, children,
 }: {
   titre: string;
   icone: typeof Heart;
@@ -342,10 +360,26 @@ function BlocAvatars({
   personnes: Personne[];
   vide: string;
   cta: string;
-  children: React.ReactNode;
+  /** Clic sur un visage. Sans cette fonction, l'avatar reste inerte. */
+  onClic?: (p: Personne) => void;
+  /**
+   * Détail déplié par « Voir plus ».
+   *
+   * Absent, « Voir plus » se contente de dérouler TOUS les visages au
+   * lieu des douze premiers. C'est le cas de « M'ont aimé » : la
+   * rubrique doit rester contemplative, sans bouton d'action posé sous
+   * chaque personne.
+   */
+  children?: React.ReactNode;
 }) {
   const [deplie, setDeplie] = useState(false);
   const n = personnes.length;
+  const APERCU = 12;
+
+  // Sans détail à déplier, il n'y a rien de plus à montrer une fois tous
+  // les visages affichés : le bouton disparaît.
+  const peutDeplier = children ? true : n > APERCU;
+  const visibles = deplie && !verrouille ? personnes : personnes.slice(0, APERCU);
 
   return (
     <section>
@@ -364,7 +398,7 @@ function BlocAvatars({
 
       {n === 0 ? (
         <Rien texte={vide} />
-      ) : deplie && !verrouille ? (
+      ) : deplie && !verrouille && children ? (
         <>
           {children}
           <button
@@ -375,23 +409,36 @@ function BlocAvatars({
         </>
       ) : (
         <>
-          <div className="flex gap-2.5 overflow-x-auto scrollbar-none pb-1">
-            {personnes.slice(0, 12).map(p => (
-              <div key={p.cle} className="shrink-0">
-                <span className="block w-16 h-16 rounded-full p-[2px] bg-gradient-to-br from-primary to-gold">
-                  <span className="block w-full h-full rounded-full overflow-hidden bg-background">
-                    <span className={verrouille ? "block w-full h-full blur-md scale-110" : "block w-full h-full"}>
-                      <Photo src={p.photo} name={p.prenom || "Membre"} />
+          {/* Replié : une rangée qui défile. Déplié : une grille, pour
+              voir tout le monde d'un coup sans faire glisser. */}
+          <div className={deplie && !verrouille && !children
+            ? "grid grid-cols-4 sm:grid-cols-6 gap-3"
+            : "flex gap-2.5 overflow-x-auto scrollbar-none pb-1"}>
+            {visibles.map(p => {
+              const cliquable = !!onClic && !verrouille;
+              const Balise = cliquable ? "button" : "div";
+              return (
+                <Balise
+                  key={p.cle}
+                  onClick={cliquable ? () => onClic!(p) : undefined}
+                  className={`shrink-0 ${cliquable ? "text-left transition-transform hover:scale-105" : ""}`}
+                  aria-label={cliquable ? `Voir le profil de ${p.prenom ?? "ce membre"}` : undefined}
+                >
+                  <span className="block w-16 h-16 rounded-full p-[2px] bg-gradient-to-br from-primary to-gold">
+                    <span className="block w-full h-full rounded-full overflow-hidden bg-background">
+                      <span className={verrouille ? "block w-full h-full blur-md scale-110" : "block w-full h-full"}>
+                        <Photo src={p.photo} name={p.prenom || "Membre"} />
+                      </span>
                     </span>
                   </span>
-                </span>
-                {/* Le prénom est caché avec le visage : livrer la moitié
-                    de l'information reviendrait à ne rien verrouiller. */}
-                <p className="text-[10px] text-center mt-1 truncate w-16 text-muted-foreground">
-                  {verrouille ? "•••" : p.prenom}
-                </p>
-              </div>
-            ))}
+                  {/* Le prénom est caché avec le visage : livrer la moitié
+                      de l'information reviendrait à ne rien verrouiller. */}
+                  <p className="text-[10px] text-center mt-1 truncate w-16 text-muted-foreground">
+                    {verrouille ? "•••" : p.prenom}
+                  </p>
+                </Balise>
+              );
+            })}
           </div>
 
           {verrouille ? (
@@ -400,13 +447,19 @@ function BlocAvatars({
               className="mt-3 w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-gold text-gold-foreground text-sm font-semibold shadow-elegant hover:opacity-90 transition-opacity">
               <Lock className="w-4 h-4" /> {cta} — Premium
             </Link>
-          ) : (
+          ) : deplie && !children ? (
+            <button
+              onClick={() => setDeplie(false)}
+              className="mt-3 w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-secondary hover:bg-secondary/80 text-sm font-medium transition-colors">
+              Réduire <ChevronUp className="w-3.5 h-3.5" />
+            </button>
+          ) : peutDeplier ? (
             <button
               onClick={() => setDeplie(true)}
               className="mt-3 w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-secondary hover:bg-secondary/80 text-sm font-medium transition-colors">
               Voir plus <ChevronDown className="w-3.5 h-3.5" />
             </button>
-          )}
+          ) : null}
         </>
       )}
     </section>
