@@ -6,6 +6,7 @@ import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/lib/supabase";
 import { getCurrentUserId } from "@/lib/auth";
 import { PushToggle } from "@/components/app/PushToggle";
+import { PushEngagement } from "@/components/app/PushEngagement";
 
 export const Route = createFileRoute("/_app/parametres/notifications")({
   head: () => ({
@@ -111,8 +112,13 @@ function NotificationsPage() {
 
       {/* Le push d'abord : c'est l'immédiat. Les e-mails viennent après,
           ils relèvent du récapitulatif. */}
-      <div className="mb-6">
+      <div className="mb-6 space-y-3">
         <PushToggle />
+        {/* Réglage SÉPARÉ du push transactionnel. Quelqu'un peut vouloir
+            être averti de ses messages sans recevoir de relance : les
+            confondre ferait perdre les deux au premier agacement — et un
+            refus de notifications, lui, est définitif. */}
+        <PushEngagement />
       </div>
 
       {loading ? (
