@@ -10,6 +10,7 @@ import { supabase } from "@/lib/supabase";
 import { getCurrentUserId } from "@/lib/auth";
 import { formatPrice } from "@/lib/plans";
 import { TracabiliteEmails } from "@/components/admin/TracabiliteEmails";
+import { TracabilitePush } from "@/components/admin/TracabilitePush";
 
 export const Route = createFileRoute("/admin/marketing")({
   component: AdminMarketing,
@@ -497,6 +498,8 @@ function AdminMarketing() {
               devenus les messages déjà partis pèse plus, au quotidien,
               que la liste de ce qu'on a envoyé. */}
           <TracabiliteEmails days={days} />
+
+          <TracabilitePush days={days} />
 
           {/* ══ 8. Historique ══ */}
           <section>

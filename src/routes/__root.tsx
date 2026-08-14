@@ -183,6 +183,10 @@ function RootComponent() {
     // Même raison pour le parrainage : un membre partage volontiers son
     // lien vers un article ou la page tarifs, pas seulement l'accueil.
     import("@/lib/parrainage").then(m => m.capturerParrain());
+
+    // À la racine également : une notification peut pointer vers
+    // n'importe quelle page — découvrir, profil, communauté, abonnement.
+    import("@/lib/pushClic").then(m => m.capturerClicPush());
   }, []);
 
   return (
