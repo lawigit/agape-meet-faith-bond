@@ -327,8 +327,20 @@ function DiscoverPage() {
       return;
     }
 
+    // Un refus faute de formule ou de quota OUVRE LE PANNEAU d'achat,
+    // il ne déclenche pas une notification.
+    //
+    // Le composant était déjà monté plus bas dans cette page, mais rien
+    // ne l'ouvrait : le refus partait en bandeau rouge en haut de
+    // l'écran, par-dessus l'en-tête, et disparaissait tout seul. Le même
+    // refus depuis le bouton de l'en-tête ouvrait pourtant le panneau —
+    // deux réponses différentes au même geste, dans la même application.
+    //
+    // Un panneau centré vaut mieux ici : on vient de demander quelque
+    // chose, la réponse doit rester à l'écran le temps de la lire et
+    // proposer la suite, plutôt que de s'évanouir en trois secondes.
     if (res.reason === "plan" || res.reason === "quota") {
-      upsell(boostErrorMessage(res.reason, res.expiresAt));
+      setBoostPicker(res.reason);
     } else {
       toast.info(boostErrorMessage(res.reason, res.expiresAt));
     }
