@@ -3,6 +3,7 @@ import { motion, useMotionValue, useTransform, AnimatePresence } from "motion/re
 import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
 import { BoutonAjouter } from "@/components/app/BoutonAjouter";
+import { envoyerDemande, RAISONS } from "@/lib/contacts";
 import { getCurrentUser } from "@/lib/auth";
 import {
   X,
@@ -73,6 +74,9 @@ function DiscoverPage() {
   useEffect(() => { fetchBoostStatus().then(setBoostStatus); }, []);
   const boostsLeft = boostStatus?.left ?? 0;
   const [showMessageModal, setShowMessageModal] = useState<Profile | null>(null);
+  // Invitations envoyées pendant la session : le bouton doit refléter
+  // ce qui vient d'être fait, sans relire la base à chaque carte.
+  const [invites, setInvites] = useState<Set<string>>(new Set());
   const [messageText, setMessageText] = useState("");
 
   const upsell = (message: string) => {
@@ -371,23 +375,43 @@ function DiscoverPage() {
     }
   };
 
-  // ── Ajouter aux contacts ──
+  /**
+   * « Ajouter » — envoi d'une invitation.
+   *
+   * CE BOUTON INSÉRAIT UN LIKE. Il écrivait dans `swipes` avec
+   * `action: 'like'`, donc la personne se retrouvait dans « M'ont aimé »
+   * et jamais dans ses demandes reçues — tout en lui annonçant qu'elle
+   * avait été « ajoutée à vos contacts ». Trois erreurs d'un coup : la
+   * mauvaise table, la mauvaise rubrique, et un message faux.
+   *
+   * Un LIKE est un signal silencieux issu du balayage. « Ajouter » est
+   * une invitation nominative qui appelle une réponse. Les deux gestes
+   * coexistent sur cette carte sans se confondre.
+   *
+   * Le paquet n'avance PAS. Avancer sans écrire de swipe ferait
+   * réapparaître le profil à la session suivante — le paquet exclut les
+   * profils déjà swipés, pas ceux qu'on a invités.
+   */
   const addContact = async () => {
     if (!currentFiltered) return;
-    try {
-      const user = await getCurrentUser();
-      if (!user) return;
-      await supabase.from('swipes').insert({
-        swiper_id: user.id,
-        target_id: currentFiltered.id,
-        action: 'like'
-      });
-      setHistory(h => [...h, { id: currentFiltered.id, action: 'right' }]);
-      setIndex(i => i + 1);
-      toast.success(`${currentFiltered.firstName} ajouté(e) à vos contacts ! 👤`);
-    } catch (e) {
-      console.error(e);
+
+    const res = await envoyerDemande(currentFiltered.id);
+
+    if (!res.ok) {
+      toast.error(RAISONS[res.raison] ?? "Envoi impossible");
+      if (res.raison === "deja_envoyee") {
+        setInvites(s => new Set(s).add(currentFiltered.id));
+      }
+      return;
     }
+
+    setInvites(s => new Set(s).add(currentFiltered.id));
+    toast.success(
+      res.croisee
+        ? `Vous étiez déjà sollicité : vous voilà en contact avec ${currentFiltered.firstName}`
+        : `Invitation envoyée à ${currentFiltered.firstName}`,
+      { description: res.croisee ? undefined : "Elle apparaît dans vos demandes envoyées." },
+    );
   };
 
   return (
@@ -545,14 +569,26 @@ function DiscoverPage() {
           <span className="text-[10px] text-muted-foreground font-medium">Message</span>
         </div>
 
+        {/* L'état est montré sur le bouton : sans cela, rien ne distingue
+            une invitation envoyée d'une invitation à envoyer, et on la
+            renvoie — pour se voir refuser par la contrainte d'unicité. */}
         <div className="flex flex-col items-center gap-1">
           <button
             onClick={addContact}
-            className="w-10 h-10 rounded-full border-2 border-primary/80 bg-background flex items-center justify-center text-primary hover:bg-primary/10 transition-transform active:scale-95 shadow-sm"
+            disabled={invites.has(currentFiltered?.id ?? "")}
+            className={`w-10 h-10 rounded-full border-2 flex items-center justify-center transition-transform active:scale-95 shadow-sm ${
+              invites.has(currentFiltered?.id ?? "")
+                ? "border-emerald-500/60 bg-emerald-500/10 text-emerald-600"
+                : "border-primary/80 bg-background text-primary hover:bg-primary/10"
+            }`}
           >
-            <UserPlus className="w-4 h-4" />
+            {invites.has(currentFiltered?.id ?? "")
+              ? <CheckCircle2 className="w-4 h-4" />
+              : <UserPlus className="w-4 h-4" />}
           </button>
-          <span className="text-[10px] text-muted-foreground font-medium">Ajouter</span>
+          <span className="text-[10px] text-muted-foreground font-medium">
+            {invites.has(currentFiltered?.id ?? "") ? "Invité" : "Ajouter"}
+          </span>
         </div>
       </div>
 
