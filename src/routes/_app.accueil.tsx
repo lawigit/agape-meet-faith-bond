@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { useSubscription } from "@/lib/subscription";
 import { useNavigate } from "@tanstack/react-router";
 import { Lock } from "lucide-react";
+import { publicPlanOf } from "@/lib/badges";
 import { MesDemandes } from "@/components/app/MesDemandes";
 
 export const Route = createFileRoute("/_app/accueil")({
@@ -87,7 +88,7 @@ function HomePage() {
             'is_verified, boosted_until, practice_level, church_attendance, ' +
             'marriage_intent, wants_children, gender, ' +
             'marital_status, marriage_vision, looking_for, education, height_cm, ' +
-            'public_plan, premium_until, is_founder, ' +
+            'public_plan, premium_until, is_founder, created_at, ' +
             'interests, qualities, flaws, dealbreakers',
           )
           .neq('id', user.id)
@@ -135,6 +136,7 @@ function HomePage() {
             verified: true,
             plan: p.public_plan ?? null,
             planUntil: p.premium_until ?? null,
+            createdAt: p.created_at ?? null,
             isFounder: Boolean(p.is_founder),
             premium: false,
             lastActive: "Récemment",
@@ -213,10 +215,36 @@ function HomePage() {
     toast.success(messages[newVis]);
   };
 
+  /* Les trois rangées servaient LA MÊME LISTE.
+     « Membres Premium » et « Recommandés pour vous » étaient identiques
+     — d'où des profils gratuits sous une couronne — et « Nouveaux
+     membres » n'était que cette même liste inversée, donc les plus
+     anciens du lot autant que les plus récents.
+
+     `publicPlanOf` est la règle qui décide déjà du badge affiché sur les
+     cartes : la réutiliser garantit qu'un profil listé sous « Premium »
+     porte bien la couronne, expiration comprise. Une seconde règle
+     écrite ici aurait fini par les contredire. */
+  const premium = profiles.filter(p =>
+    publicPlanOf({
+      public_plan: p.plan ?? null,
+      premium_until: p.planUntil ?? null,
+      is_founder: p.isFounder,
+    }) !== null,
+  );
+
+  const nouveaux = [...profiles].sort(
+    (a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""),
+  );
+
   const sections: Section[] = [
     { title: "Recommandés pour vous", icon: Sparkles, data: profiles.slice(0, 8) },
-    { title: "Membres Premium", icon: Crown, data: profiles.slice(0, 8) },
-    { title: "Nouveaux membres", icon: UserPlus, data: profiles.slice(0, 8).reverse() },
+    // Rangée masquée si personne n'y a droit : la remplir de profils
+    // gratuits est exactement le défaut qu'on corrige.
+    ...(premium.length > 0
+      ? [{ title: "Membres Premium", icon: Crown, data: premium.slice(0, 8) }]
+      : []),
+    { title: "Nouveaux membres", icon: UserPlus, data: nouveaux.slice(0, 8) },
   ];
 
   return (

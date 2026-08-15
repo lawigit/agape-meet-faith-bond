@@ -10,6 +10,8 @@ export type Profile = {
   /** Offre publique — sert au badge. `planUntil` en décide l'expiration. */
   plan?: string | null;
   planUntil?: string | null;
+  /** Date d'inscription — sert au tri « Nouveaux membres ». */
+  createdAt?: string | null;
   isFounder?: boolean;
   marriageVisionText?: string;
   lookingFor?: string;
