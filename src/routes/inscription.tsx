@@ -254,8 +254,39 @@ function InscriptionPage() {
                     {acceptedCGU && <Check className="w-3.5 h-3.5 text-primary-foreground" />}
                   </div>
                 </div>
+                {/* Les liens OUVRENT VRAIMENT les pages, dans un nouvel
+                    onglet. Ils pointaient sur « # » avec un
+                    `preventDefault()` : on faisait accepter des conditions
+                    qu'il était impossible de lire. Un consentement à un
+                    texte inaccessible ne vaut rien — ni juridiquement, ni
+                    devant un membre qui conteste.
+
+                    `stopPropagation` : sans lui, cliquer le lien
+                    cocherait aussi la case, puisqu'il vit dans le
+                    `<label>`. */}
                 <span className="text-sm text-muted-foreground leading-relaxed select-none">
-                  J'accepte les <a href="#" onClick={(e) => e.preventDefault()} className="text-primary hover:underline font-medium">termes et conditions</a> d'utilisation de AgapeMeet
+                  Je certifie avoir <strong className="text-foreground font-medium">18 ans ou plus</strong> et
+                  j'accepte les{" "}
+                  <Link
+                    to="/conditions"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={e => e.stopPropagation()}
+                    className="text-primary hover:underline font-medium"
+                  >
+                    conditions d'utilisation
+                  </Link>{" "}
+                  ainsi que la{" "}
+                  <Link
+                    to="/confidentialite"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={e => e.stopPropagation()}
+                    className="text-primary hover:underline font-medium"
+                  >
+                    politique de confidentialité
+                  </Link>{" "}
+                  d'AgapeMeet.
                 </span>
               </label>
 

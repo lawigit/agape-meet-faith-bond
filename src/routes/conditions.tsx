@@ -71,9 +71,39 @@ const SECTIONS = [
     ],
   },
   {
-    h: "8. Modification des conditions",
+    h: "8. Notifications et communications",
+    p: [
+      "En créant un compte, vous acceptez de recevoir les messages nécessaires au fonctionnement du service : confirmation d'inscription, reçus de paiement, échéances d'abonnement et alertes de sécurité. Ces messages ne relèvent pas de la prospection et ne peuvent pas être désactivés tant que le compte existe.",
+      "Les autres communications — suggestions, rappels, actualités — sont facultatives. Vous les réglez à tout moment depuis Paramètres puis Notifications, et chaque e-mail comporte un lien de désabonnement.",
+      "Les notifications sur votre appareil ne sont envoyées qu'après votre autorisation explicite, donnée dans votre navigateur. Vous pouvez la retirer à tout moment.",
+    ],
+  },
+  {
+    // Écrit AVANT le premier litige, pas après. Sans ces règles, une
+    // contestation sur une commission se réglerait de mémoire, et le
+    // membre aurait autant de raisons que la plateforme.
+    h: "9. Programme de parrainage",
+    p: [
+      "Le programme de parrainage est ouvert sur invitation et peut être activé ou suspendu à tout moment. L'accès n'est pas un droit acquis.",
+      "Une commission est due lorsqu'une personne inscrite au moyen de votre lien règle un abonnement. Elle est calculée sur le montant de l'abonnement, au taux en vigueur au moment de l'encaissement : une modification ultérieure du taux ne s'applique pas aux commissions déjà acquises.",
+      "Une commission devient retirable après un délai de vérification. Elle est annulée si le paiement correspondant est remboursé, ou si le compte du filleul est suspendu pendant ce délai.",
+      "Les versements sont effectués manuellement par Mobile Money, à partir d'un montant minimum indiqué dans votre espace de parrainage. Ils sont adressés au numéro que vous fournissez ; une erreur de saisie ne peut pas nous être imputée.",
+      "L'auto-parrainage, la création de comptes multiples et toute sollicitation massive entraînent l'annulation des commissions non versées et la fermeture de l'accès au programme.",
+      "Les commissions restent dues tant que votre filleul renouvelle son abonnement, indépendamment de votre propre formule. La suppression de votre compte met fin au programme, faute de destinataire.",
+    ],
+  },
+  {
+    h: "10. Droit applicable et réclamations",
+    p: [
+      "Toute réclamation peut être adressée depuis la page d'aide de l'application. Nous nous engageons à y répondre dans un délai raisonnable.",
+      "Les présentes conditions sont régies par le droit togolais. À défaut de règlement amiable, les tribunaux compétents seront ceux du siège d'AgapeMeet.",
+    ],
+  },
+  {
+    h: "11. Modification des conditions",
     p: [
       "Les présentes conditions peuvent être modifiées. Toute modification substantielle sera portée à la connaissance des membres au sein de l'application.",
+      "La poursuite de l'utilisation du service après notification vaut acceptation des conditions modifiées.",
     ],
   },
 ];

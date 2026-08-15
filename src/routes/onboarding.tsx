@@ -601,14 +601,14 @@ function StepProfile({
           <Field label="Genre">
             <div className="grid grid-cols-2 gap-3">
               <GenderChoice
-                active={data.gender === "femme"}
-                onClick={() => update("gender", "femme")}
+                active={data.gender === "female"}
+                onClick={() => update("gender", "female")}
                 label="Femme"
                 icon={WomanIcon}
               />
               <GenderChoice
-                active={data.gender === "homme"}
-                onClick={() => update("gender", "homme")}
+                active={data.gender === "male"}
+                onClick={() => update("gender", "male")}
                 label="Homme"
                 icon={ManIcon}
               />
@@ -805,14 +805,14 @@ function StepSearch({
         <Field label="Je recherche">
           <div className="grid grid-cols-2 gap-3">
             <GenderChoice
-              active={data.seekingGender === "femme"}
-              onClick={() => update("seekingGender", "femme")}
+              active={data.seekingGender === "female"}
+              onClick={() => update("seekingGender", "female")}
               label="Une femme"
               icon={WomanIcon}
             />
             <GenderChoice
-              active={data.seekingGender === "homme"}
-              onClick={() => update("seekingGender", "homme")}
+              active={data.seekingGender === "male"}
+              onClick={() => update("seekingGender", "male")}
               label="Un homme"
               icon={ManIcon}
             />
@@ -904,7 +904,7 @@ function StepPhotos({
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const GenderAvatar =
-    data.gender === "femme" ? WomanIcon : data.gender === "homme" ? ManIcon : null;
+    data.gender === "female" ? WomanIcon : data.gender === "male" ? ManIcon : null;
 
   const photo = data.photos[0] ?? null;
 
