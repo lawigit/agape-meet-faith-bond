@@ -242,7 +242,7 @@ function HomePage() {
     // Rangée masquée si personne n'y a droit : la remplir de profils
     // gratuits est exactement le défaut qu'on corrige.
     ...(premium.length > 0
-      ? [{ title: "Membres Premium", icon: Crown, data: premium.slice(0, 8) }]
+      ? [{ title: "Membres Premium & VIP", icon: Crown, data: premium.slice(0, 8) }]
       : []),
     { title: "Nouveaux membres", icon: UserPlus, data: nouveaux.slice(0, 8) },
   ];
