@@ -18,7 +18,6 @@ import { useSubscription } from "@/lib/subscription";
 import { useNavigate } from "@tanstack/react-router";
 import { Lock } from "lucide-react";
 import { MesDemandes } from "@/components/app/MesDemandes";
-import { BoutonAjouter } from "@/components/app/BoutonAjouter";
 
 export const Route = createFileRoute("/_app/accueil")({
   head: () => ({
@@ -631,11 +630,6 @@ function ProfileDetailModal({ profile, onClose }: { profile: Profile; onClose: (
               }}
             />
           </div>
-
-          {/* La demande de contact se décide ici, sur le profil : c'est
-              le seul endroit où l'on dispose de quoi juger. Distincte du
-              like — explicite, nominative, et elle appelle une réponse. */}
-          <BoutonAjouter autreId={profile.id} />
 
           {/* CTA */}
           <Link
