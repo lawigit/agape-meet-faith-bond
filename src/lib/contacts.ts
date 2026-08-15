@@ -54,7 +54,11 @@ export async function fetchDemandes(): Promise<MesDemandes> {
 
 export type Envoi =
   | { ok: true; statut: StatutDemande; croisee?: boolean }
-  | { ok: false; raison: string; statut?: StatutDemande };
+  | {
+      ok: false; raison: string; statut?: StatutDemande;
+      /** Renseignés uniquement quand `raison === "quota_atteint"`. */
+      max?: number; utilise?: number; prochain?: string | null;
+    };
 
 export async function envoyerDemande(destinataire: string, message?: string): Promise<Envoi> {
   const { data, error } = await supabase.rpc("envoyer_demande", {
@@ -104,4 +108,7 @@ export const RAISONS: Record<string, string> = {
   bloque: "Impossible d'envoyer une demande à ce membre.",
   deja_envoyee: "Vous avez déjà envoyé une demande à ce membre.",
   introuvable_ou_deja_traitee: "Cette demande a déjà été traitée.",
+  // `quota_atteint` n'a volontairement pas de message ici : il ouvre un
+  // panneau, pas une notification. Une notification disparaîtrait en
+  // trois secondes, sans laisser le temps de lire l'offre.
 };

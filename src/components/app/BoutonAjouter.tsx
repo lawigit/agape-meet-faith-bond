@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { UserPlus, Hourglass, UserCheck, X, Loader2, Send } from "lucide-react";
 import { toast } from "sonner";
+import { LimiteDemandes } from "@/components/app/LimiteDemandes";
 import {
   etatDemande, envoyerDemande, annulerDemande, RAISONS, type EtatDemande,
 } from "@/lib/contacts";
@@ -31,6 +32,7 @@ export function BoutonAjouter({
   const [busy, setBusy] = useState(false);
   const [saisie, setSaisie] = useState(false);
   const [mot, setMot] = useState("");
+  const [limite, setLimite] = useState<{ max: number; prochain: string | null } | null>(null);
 
   async function lire() {
     setEtat(await etatDemande(autreId));
@@ -46,6 +48,13 @@ export function BoutonAjouter({
     setMot("");
 
     if (!res.ok) {
+      // Le quota ouvre un PANNEAU, pas une notification : c'est une
+      // proposition d'abonnement, elle doit rester à l'écran le temps
+      // d'être lue.
+      if (res.raison === "quota_atteint") {
+        setLimite({ max: res.max ?? 5, prochain: res.prochain ?? null });
+        return;
+      }
       toast.error(RAISONS[res.raison] ?? "Envoi impossible");
       lire();
       return;
@@ -83,18 +92,23 @@ export function BoutonAjouter({
     ? "inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-colors"
     : "w-full inline-flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-colors";
 
+  /* Le contenu est CALCULÉ puis rendu, au lieu d'une série de `return`
+     anticipés. Avec des retours directs, le panneau « Limite atteinte »
+     placé en fin de fonction n'aurait jamais été atteint : le bouton
+     « Ajouter » sort par le dernier `return`, et l'écran serait resté
+     muet au sixième clic. */
+  let contenu: ReactNode;
+
   if (etat.etat === "accepted") {
-    return (
+    contenu = (
       <span className={`${base} bg-emerald-500/10 text-emerald-600 cursor-default`}>
         <UserCheck className="w-4 h-4" /> En contact
       </span>
     );
-  }
-
-  if (etat.etat === "pending") {
+  } else if (etat.etat === "pending") {
     // L'émetteur peut se rétracter ; le destinataire, lui, est invité à
     // répondre — pas à envoyer une demande de plus.
-    return etat.je_suis_emetteur ? (
+    contenu = etat.je_suis_emetteur ? (
       <button onClick={annuler} disabled={busy}
               className={`${base} bg-secondary text-muted-foreground hover:bg-secondary/70 disabled:opacity-50`}>
         {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Hourglass className="w-4 h-4" />}
@@ -105,20 +119,16 @@ export function BoutonAjouter({
         <Hourglass className="w-4 h-4" /> Vous a envoyé une demande
       </span>
     );
-  }
-
-  if (etat.etat === "refused") {
+  } else if (etat.etat === "refused") {
     // Volontairement muet sur QUI a refusé : la contrainte d'unicité
     // empêche de toute façon de réessayer, et insister n'aiderait pas.
-    return (
+    contenu = (
       <span className={`${base} bg-secondary text-muted-foreground cursor-default`}>
         <X className="w-4 h-4" /> Demande close
       </span>
     );
-  }
-
-  if (saisie) {
-    return (
+  } else if (saisie) {
+    contenu = (
       <div className="w-full space-y-2">
         <textarea
           value={mot}
@@ -141,12 +151,25 @@ export function BoutonAjouter({
         </div>
       </div>
     );
+  } else {
+    contenu = (
+      <button onClick={() => setSaisie(true)}
+              className={`${base} bg-primary text-primary-foreground hover:opacity-90`}>
+        <UserPlus className="w-4 h-4" /> Ajouter
+      </button>
+    );
   }
 
   return (
-    <button onClick={() => setSaisie(true)}
-            className={`${base} bg-primary text-primary-foreground hover:opacity-90`}>
-      <UserPlus className="w-4 h-4" /> Ajouter
-    </button>
+    <>
+      {contenu}
+      {limite && (
+        <LimiteDemandes
+          max={limite.max}
+          prochain={limite.prochain}
+          onClose={() => setLimite(null)}
+        />
+      )}
+    </>
   );
 }

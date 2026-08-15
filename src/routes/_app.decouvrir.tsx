@@ -2,8 +2,8 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { motion, useMotionValue, useTransform, AnimatePresence } from "motion/react";
 import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
-import { BoutonAjouter } from "@/components/app/BoutonAjouter";
 import { envoyerDemande, RAISONS } from "@/lib/contacts";
+import { LimiteDemandes } from "@/components/app/LimiteDemandes";
 import { getCurrentUser } from "@/lib/auth";
 import {
   X,
@@ -77,6 +77,7 @@ function DiscoverPage() {
   // Invitations envoyées pendant la session : le bouton doit refléter
   // ce qui vient d'être fait, sans relire la base à chaque carte.
   const [invites, setInvites] = useState<Set<string>>(new Set());
+  const [limite, setLimite] = useState<{ max: number; prochain: string | null } | null>(null);
   const [messageText, setMessageText] = useState("");
 
   const upsell = (message: string) => {
@@ -398,6 +399,12 @@ function DiscoverPage() {
     const res = await envoyerDemande(currentFiltered.id);
 
     if (!res.ok) {
+      // Le quota ouvre le panneau d'abonnement, jamais une notification :
+      // on refuse quelque chose, la réponse doit rester lisible.
+      if (res.raison === "quota_atteint") {
+        setLimite({ max: res.max ?? 5, prochain: res.prochain ?? null });
+        return;
+      }
       toast.error(RAISONS[res.raison] ?? "Envoi impossible");
       if (res.raison === "deja_envoyee") {
         setInvites(s => new Set(s).add(currentFiltered.id));
@@ -753,6 +760,14 @@ function DiscoverPage() {
         {detail && <ProfileDetailModal profile={detail} onClose={() => setDetail(null)} />}
       </AnimatePresence>
 
+      {limite && (
+        <LimiteDemandes
+          max={limite.max}
+          prochain={limite.prochain}
+          onClose={() => setLimite(null)}
+        />
+      )}
+
       {boostPicker && (
         <BoostPicker
           reason={boostPicker}
@@ -911,10 +926,6 @@ function ProfileDetailModal({ profile, onClose }: { profile: Profile; onClose: (
               <div><span className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Vision du mariage</span><p className="font-medium text-sm leading-relaxed">{profile.marriageVision}</p></div>
             </div>
           </section>
-          {/* Demande de contact — explicite, à côté du like qui, lui,
-              reste silencieux tant qu'il n'est pas réciproque. */}
-          <BoutonAjouter autreId={profile.id} />
-
           <section>
             <h3 className="font-serif text-lg font-semibold mb-2">À propos</h3>
             <p className="text-sm leading-relaxed text-muted-foreground">{profile.bio}</p>
