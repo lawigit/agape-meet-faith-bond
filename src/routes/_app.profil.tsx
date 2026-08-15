@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { getCurrentUser } from "@/lib/auth";
+import { compresserImage } from "@/lib/image";
 import { Save, Camera, X, Upload, Trash2, ArrowLeft, Lock, Crown, Video } from "lucide-react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
@@ -207,12 +208,18 @@ function ProfilePage() {
     toast.info("Upload en cours...", { id: "uploading" });
     
     try {
-      const ext = file.name.split('.').pop() || 'jpg';
+      /* Compression AVANT l'envoi : une photo de téléphone pèse 3 à 8 Mo
+         et s'affiche dans une vignette de 224 pixels. Réduite à
+         1 280 pixels, elle tombe à environ 200 Ko — vingt fois moins à
+         télécharger pour chaque personne qui verra ce profil. */
+      const compressee = await compresserImage(file);
+
+      const ext = compressee.name.split('.').pop() || 'jpg';
       const filePath = `${userId}/${Date.now()}.${ext}`;
-      
+
       const { error: uploadError } = await supabase.storage
         .from('photos')
-        .upload(filePath, file, { contentType: file.type });
+        .upload(filePath, compressee, { contentType: compressee.type });
         
       if (uploadError) throw uploadError;
 

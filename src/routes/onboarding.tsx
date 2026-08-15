@@ -21,6 +21,7 @@ import { Slider } from "@/components/ui/slider";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { getSessionUser } from "@/lib/auth";
+import { compresserImage } from "@/lib/image";
 
 type Photo = { id: string; url: string; name: string };
 
@@ -297,12 +298,21 @@ function OnboardingPage() {
           try {
             const res = await fetch(photo.url);
             const blob = await res.blob();
-            const ext = photo.name.split('.').pop() || 'jpg';
+
+            /* Compression avant envoi. C'est la PREMIÈRE photo de chaque
+               membre : celle qui apparaîtra dans toutes les vignettes,
+               et donc celle qui pèse le plus sur la vitesse ressentie
+               par tous les autres. */
+            const compressee = await compresserImage(
+              new File([blob], photo.name, { type: blob.type }),
+            );
+
+            const ext = compressee.name.split('.').pop() || 'jpg';
             const filePath = `${userId}/${Date.now()}-${index}.${ext}`;
 
             const { error: uploadError } = await supabase.storage
               .from('photos')
-              .upload(filePath, blob, { contentType: blob.type });
+              .upload(filePath, compressee, { contentType: compressee.type });
 
             if (uploadError) {
               // L'erreur était SILENCIEUSEMENT ignorée : `if (!uploadError)`
