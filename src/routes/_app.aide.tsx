@@ -59,8 +59,7 @@ function AidePage() {
   const load = async () => {
     const { data, error } = await supabase
       .from("support_tickets")
-      // Les six colonnes du type Ticket, pas la table entiere.
-      .select("id, subject, category, status, created_at, updated_at")
+      .select("*")
       .order("updated_at", { ascending: false });
 
     if (error) {
@@ -106,9 +105,7 @@ function AidePage() {
       await load();
 
       if (data) {
-        const fresh = await supabase.from("support_tickets")
-          .select("id, subject, category, status, created_at, updated_at")
-          .eq("id", data).single();
+        const fresh = await supabase.from("support_tickets").select("*").eq("id", data).single();
         if (fresh.data) openTicket(fresh.data as Ticket);
       }
     } catch (e: any) {

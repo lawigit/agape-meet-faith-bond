@@ -80,22 +80,7 @@ function ProfilePage() {
         return;
       }
       setUserId(user.id);
-      /* Colonnes nommées plutôt que `*`.
-         La liste reprend EXACTEMENT les champs écrits par la sauvegarde
-         plus bas : un champ chargé mais non écrit serait perdu au
-         premier enregistrement, un champ écrit mais non chargé
-         repartirait vide. Les deux listes doivent rester jumelles. */
-      const { data } = await supabase
-        .from('profiles')
-        .select(
-          'id, first_name, last_name, bio, city, country, birth_date, gender, ' +
-          'denomination, practice_level, baptized, church_attendance, ' +
-          'seeking_gender, marriage_intent, has_children, wants_children, photos, ' +
-          'marital_status, marriage_vision, looking_for, education, height_cm, ' +
-          'interests, qualities, flaws, dealbreakers',
-        )
-        .eq('id', user.id)
-        .single();
+      const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
       if (data) {
         setForm({
           first_name: data.first_name || "",

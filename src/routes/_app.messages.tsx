@@ -1008,18 +1008,12 @@ function ChatView({
 
   useEffect(() => {
     async function loadMessages() {
-      /* Colonnes nommées, et surtout un PLAFOND.
-         Sans `limit`, ouvrir une conversation chargeait l'intégralité de
-         son historique : mille messages arrivaient d'un coup pour en
-         afficher vingt. On prend les 100 DERNIERS — donc en ordre
-         décroissant — puis on remet à l'endroit pour l'affichage. */
       const { data } = await supabase
         .from("messages")
-        .select("id, match_id, sender_id, content, created_at, read_at, media_url, media_type")
+        .select("*")
         .eq("match_id", chat.id)
-        .order("created_at", { ascending: false })
-        .limit(100);
-      if (data) setMessages((data as Msg[]).slice().reverse());
+        .order("created_at", { ascending: true });
+      if (data) setMessages(data as Msg[]);
       // À l'ouverture, tout ce qui a été reçu est considéré lu
       markAsRead();
     }

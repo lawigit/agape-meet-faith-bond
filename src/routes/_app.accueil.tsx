@@ -39,6 +39,7 @@ function HomePage() {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [completionScore, setCompletionScore] = useState(0);
   const [visibility, setVisibility] = useState<"tous" | "demande" | "pause">("tous");
+  const [visitors, setVisitors] = useState<any[]>([]);
   const [selectedProfile, setSelectedProfile] = useState<Profile | null>(null);
 
   const { content: dailyContent, loading: dailyLoading } = useDailyContent();
@@ -51,33 +52,10 @@ function HomePage() {
         const user = await getCurrentUser();
         if (!user) return;
 
-        /* Ronde 1 : profil et admirateurs.
-           Les COLONNES SONT NOMMÉES. `select('*')` ramenait tout —
-           photos, centres d'intérêt, qualités, défauts, rédhibitoires,
-           champs de vérification, jusqu'au jeton de désabonnement — pour
-           n'en lire qu'une douzaine.
-
-           La liste couvre trois usages, et les trois doivent y figurer :
-           l'affichage (`first_name`, `city`, `country`, `photos`), le
-           filtrage du deck (`seeking_gender`, `visibility`), et le calcul
-           de compatibilité, qui reçoit cet objet entier. En oublier un
-           seul ne casserait rien visiblement : le score baisserait en
-           silence, ce qui est bien pire qu'une erreur. */
-        const [{ data: currentUserData }, admirerIds] = await Promise.all([
-          supabase
-            .from('profiles')
-            .select(
-              'id, first_name, city, country, photos, bio, ' +
-              'seeking_gender, visibility, ' +
-              // `baptized` est absent volontairement : il figure dans le
-              // type `ScoringProfile`, mais `compatibilityScore` ne le
-              // lit jamais. La colonne existe bien en base — /profil
-              // l'écrit — elle n'a simplement rien à faire ici.
-              'birth_date, denomination, practice_level, church_attendance, ' +
-              'marriage_intent, wants_children',
-            )
-            .eq('id', user.id)
-            .single(),
+        // Ronde 1 : profil, visites et admirateurs sont indépendants
+        const [{ data: currentUserData }, { data: visits }, admirerIds] = await Promise.all([
+          supabase.from('profiles').select('*').eq('id', user.id).single(),
+          supabase.from('profile_visits').select('visitor_id, created_at').eq('visited_id', user.id).order('created_at', { ascending: false }).limit(5),
           fetchAdmirerIds(user.id),
         ]);
 
@@ -124,14 +102,14 @@ function HomePage() {
           query = query.eq('gender', currentUserData.seeking_gender);
         }
 
-        /* Ronde 2 : le deck seul.
-           Les deux requêtes de visiteurs qui l'accompagnaient — dont un
-           second `select('*')` — remplissaient un état que PLUS RIEN
-           n'affiche : le bloc « Ils ont consulté ton profil » a été
-           remplacé par la rubrique « Visiteurs » de `MesDemandes`, qui
-           charge ces données elle-même. Deux requêtes partaient donc à
-           chaque ouverture pour un résultat jeté. */
-        const { data } = await query;
+        // Ronde 2 : le deck et les profils des visiteurs partent ensemble
+        const visitorIds = (visits ?? []).map((v: any) => v.visitor_id);
+        const [{ data }, { data: visitorProfiles }] = await Promise.all([
+          query,
+          visitorIds.length > 0
+            ? supabase.from('profiles').select('*').in('id', visitorIds)
+            : Promise.resolve({ data: [] as any[] }),
+        ]);
 
         if (data) {
           const visible = filterByVisibility(data as any[], admirers);
@@ -177,6 +155,22 @@ function HomePage() {
             faithImportance: p.practice_level || ""
           }));
           setProfiles(rankProfiles(formatted));
+          
+          // Visiteurs : déjà chargés plus haut, plus aucune requête ici
+          if (visits && visits.length > 0) {
+            if (visitorProfiles) {
+              const formattedVisitors = visits.map((v: any) => {
+                const p = visitorProfiles.find((vp: any) => vp.id === v.visitor_id);
+                return p ? {
+                  id: p.id,
+                  firstName: p.first_name || "Membre",
+                  photo: p.photos && p.photos.length > 0 ? p.photos[0] : '',
+                  date: new Date(v.created_at)
+                } : null;
+              }).filter(Boolean);
+              setVisitors(formattedVisitors);
+            }
+          }
         }
       } catch (err) {
         console.error(err);
