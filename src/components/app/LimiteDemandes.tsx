@@ -1,7 +1,8 @@
+import { useEffect } from "react";
 import { Link } from "@tanstack/react-router";
 import { motion } from "motion/react";
-import { X, Crown, Check, Clock } from "lucide-react";
-import { getPlan, OFFERS, formatPrice } from "@/lib/plans";
+import { Crown, Check, Clock } from "lucide-react";
+import { getPlan } from "@/lib/plans";
 
 /**
  * « Limite atteinte » — le panneau du sixième clic.
@@ -16,23 +17,30 @@ import { getPlan, OFFERS, formatPrice } from "@/lib/plans";
  * précis que la promesse doit être exacte.
  */
 export function LimiteDemandes({
-  max, prochain, onClose,
+  max, onClose,
 }: {
   max: number;
-  /** Heure ISO du prochain envoi possible. La fenêtre est glissante. */
+  /**
+   * Heure du prochain envoi possible, renvoyée par la base.
+   *
+   * Plus affichée : le panneau invite à s'abonner, pas à patienter. La
+   * propriété reste acceptée pour ne pas casser les appelants, et parce
+   * qu'elle redeviendra utile si l'on veut un jour annoncer le délai.
+   */
   prochain?: string | null;
   onClose: () => void;
 }) {
   const premium = getPlan("premium");
-  const mensuel = OFFERS.find(o => o.id === "premium_1m");
 
-  // « Demain » serait faux : la fenêtre glisse sur 24 h. On dit l'heure
-  // réelle, sinon la personne revient le matin et se voit refuser encore.
-  const quand = prochain
-    ? new Date(prochain).toLocaleString("fr-FR", {
-        weekday: "long", hour: "2-digit", minute: "2-digit",
-      })
-    : null;
+  /* Échap ferme aussi.
+     Le clic à côté est la seule sortie visible ; au clavier, il n'y en
+     aurait aucune, et l'écran deviendrait un cul-de-sac. Rien ne
+     s'affiche pour autant : c'est un filet, pas un bouton. */
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
 
   return (
     <motion.div
@@ -48,15 +56,8 @@ export function LimiteDemandes({
         className="w-full max-w-sm rounded-3xl bg-background border border-border shadow-elegant overflow-hidden"
         onClick={e => e.stopPropagation()}
       >
+        {/* Aucune croix : le panneau se ferme en touchant à côté. */}
         <div className="relative px-5 pt-5 pb-4 bg-gradient-to-br from-primary to-primary/85 text-primary-foreground">
-          <button
-            onClick={onClose}
-            className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center"
-            aria-label="Fermer"
-          >
-            <X className="w-4 h-4" />
-          </button>
-
           <div className="w-11 h-11 rounded-full bg-white/20 flex items-center justify-center">
             <Clock className="w-5 h-5" />
           </div>
@@ -86,27 +87,16 @@ export function LimiteDemandes({
             ))}
           </ul>
 
+          {/* Sans prix : la page Tarifs présente les trois formules et
+              leurs durées. Afficher un montant ici en imposerait un seul,
+              et le contredirait dès qu'une offre change. */}
           <Link
             to="/abonnement"
             onClick={onClose}
             className="mt-5 w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-gold text-gold-foreground font-semibold shadow-elegant hover:opacity-90 transition-opacity"
           >
-            <Crown className="w-4 h-4" />
-            {mensuel ? `Passer Premium — ${formatPrice(mensuel.priceXOF)} / mois` : "Passer Premium"}
+            <Crown className="w-4 h-4" /> Passer Premium
           </Link>
-
-          {quand && (
-            <p className="text-[11px] text-muted-foreground text-center mt-3 leading-relaxed">
-              Sinon, tes demandes se rechargent {quand}.
-            </p>
-          )}
-
-          <button
-            onClick={onClose}
-            className="mt-2 w-full py-2.5 rounded-xl text-sm text-muted-foreground hover:bg-secondary transition-colors"
-          >
-            Plus tard
-          </button>
         </div>
       </motion.div>
     </motion.div>
