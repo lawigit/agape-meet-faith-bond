@@ -20,11 +20,14 @@ import { poserPastille } from "@/lib/appBadge";
 
 export type NavBadges = {
   messages: number;
+  /** Likes et Super Likes reçus — affichés dans « M'ont aimé », accueil. */
   demandes: number;
+  /** Demandes de contact reçues et non tranchées — page /demandes. */
+  contacts: number;
   communaute: number;
 };
 
-const VIDE: NavBadges = { messages: 0, demandes: 0, communaute: 0 };
+const VIDE: NavBadges = { messages: 0, demandes: 0, contacts: 0, communaute: 0 };
 
 /** Filet de sécurité si Realtime décroche. Deux minutes. */
 const INTERVALLE_MS = 120_000;
@@ -47,17 +50,21 @@ export function useNavBadges(): NavBadges & { refresh: () => void } {
     const suivant = {
       messages: d.messages ?? 0,
       demandes: d.demandes ?? 0,
+      // `?? 0` et non une valeur par défaut : tant que la migration 76
+      // n'est pas passée, la base ne renvoie pas ce champ et la pastille
+      // reste simplement absente, sans rien casser.
+      contacts: d.contacts ?? 0,
       communaute: d.communaute ?? 0,
     };
     setBadges(suivant);
 
     // Pastille sur l'icône de l'application installée.
     //
-    // Messages + demandes, PAS la communauté : une pastille rouge doit
-    // signaler ce qui s'adresse personnellement au membre. Compter les
-    // publications du fil la ferait clignoter en permanence, et on
-    // cesserait de la regarder.
-    poserPastille(suivant.messages + suivant.demandes);
+    // Messages, likes reçus et demandes de contact — PAS la communauté :
+    // une pastille rouge doit signaler ce qui s'adresse personnellement
+    // au membre. Compter les publications du fil la ferait clignoter en
+    // permanence, et l'on cesserait de la regarder.
+    poserPastille(suivant.messages + suivant.demandes + suivant.contacts);
   }, []);
 
   useEffect(() => {
@@ -72,6 +79,11 @@ export function useNavBadges(): NavBadges & { refresh: () => void } {
       .channel("badges-nav")
       .on("postgres_changes", { event: "*", schema: "public", table: "messages" }, rafraichir)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "swipes" }, rafraichir)
+      // `*` et non `INSERT` : la pastille doit aussi RETOMBER quand on
+      // accepte ou refuse une demande, ce qui est un UPDATE. En écoutant
+      // les seules insertions, le compteur monterait sans jamais
+      // redescendre avant le rafraîchissement de deux minutes.
+      .on("postgres_changes", { event: "*", schema: "public", table: "contact_requests" }, rafraichir)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "community_posts" }, rafraichir)
       .subscribe();
 

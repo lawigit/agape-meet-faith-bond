@@ -35,6 +35,20 @@ export const Route = createFileRoute("/_app/messages")({
       { name: "robots", content: "noindex" },
     ],
   }),
+  /**
+   * `?c=<match_id>` ouvre directement une conversation.
+   *
+   * Sans ce paramètre, tout bouton « Message » ailleurs dans
+   * l'application ne pouvait que déposer le membre sur la LISTE, à
+   * charge pour lui d'y retrouver le nom. Sur un contact tout juste
+   * accepté, c'est le moment où il faut le moins d'obstacles.
+   */
+  // Type de retour ANNOTÉ avec `c` optionnel : sans cela, le routeur
+  // rend le paramètre obligatoire et chaque `<Link to="/messages">`
+  // existant refuse de compiler.
+  validateSearch: (s: Record<string, unknown>): { c?: string } => ({
+    c: typeof s.c === "string" ? s.c : undefined,
+  }),
   component: MessagesPage,
 });
 
@@ -519,6 +533,7 @@ function MessagesPage() {
   const [active, setActive] = useState<MatchChat | null>(null);
   const [chats, setChats] = useState<MatchChat[]>([]);
   const userId = useCurrentUserId() ?? null;
+  const navigate = useNavigate();
   // Tick horaire : force le recalcul de « En ligne » / « il y a X min » sans refetch
   const [now, setNow] = useState(() => Date.now());
 
@@ -541,6 +556,29 @@ function MessagesPage() {
   useEffect(() => {
     if (isError) toast.error("Impossible de charger vos conversations");
   }, [isError]);
+
+  /**
+   * Ouverture par `?c=<match_id>`.
+   *
+   * Le paramètre est retiré de l'URL une fois la conversation ouverte :
+   * sans cela, refermer le fil pour revenir à la liste rouvrirait
+   * aussitôt le même fil, et l'on ne pourrait plus en sortir.
+   *
+   * `chats` — et non `loadedChats` — comme dépendance : la liste locale
+   * est celle qui reflète archivage et suppressions.
+   */
+  const { c: conversationDemandee } = Route.useSearch();
+  useEffect(() => {
+    if (!conversationDemandee || chats.length === 0) return;
+
+    const cible = chats.find(x => x.id === conversationDemandee);
+    if (cible) setActive(cible);
+
+    // Nettoyée dans tous les cas : une conversation introuvable —
+    // supprimée, ou personne bloquée — ne doit pas laisser un paramètre
+    // qui retentera l'ouverture à chaque rendu.
+    navigate({ to: "/messages", search: {}, replace: true });
+  }, [conversationDemandee, chats]);
 
   const loading = isPending && chats.length === 0;
 

@@ -27,6 +27,8 @@ export type Demande = {
   photos: string[] | null;
   bio: string | null;
   verifie: boolean;
+  /** Conversation associee. Absent tant que le contact n est pas accepte. */
+  match_id: string | null;
 };
 
 export type MesDemandes = {

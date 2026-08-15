@@ -229,7 +229,13 @@ function RequestsPage() {
               onBloquer={() => bloquer(x)}
               onSignaler={() => setSignaler({ id: x.autre_id, name: x.prenom })}
               onVoir={() => setApercu(x)}
-              onMessage={() => navigate({ to: "/messages" })}
+              /* `?c=` ouvre directement la conversation. Sans lui, on
+                 déposait le membre sur la liste, à charge pour lui d'y
+                 retrouver le nom qu'il venait d'accepter. */
+              onMessage={() => navigate({
+                to: "/messages",
+                search: x.match_id ? { c: x.match_id } : {},
+              })}
             />
           ))}
         </div>

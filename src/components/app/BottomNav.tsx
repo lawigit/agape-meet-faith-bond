@@ -21,7 +21,10 @@ const items: NavItem[] = [
   { to: "/accueil", label: "Accueil", icon: Home, exact: true, badge: "demandes" },
   { to: "/decouvrir", label: "Découvrir", icon: Flame },
   { to: "/messages", label: "Messages", icon: MessageCircle, badge: "messages" },
-  { to: "/demandes", label: "Demandes", icon: Heart },
+  // `contacts` et non `demandes` : ce dernier compte les likes reçus,
+  // affichés sur l'accueil. Les deux icônes montreraient sinon le même
+  // nombre pour deux contenus différents.
+  { to: "/demandes", label: "Demandes", icon: Heart, badge: "contacts" },
   { to: "/communaute", label: "Communauté", icon: Users, badge: "communaute" },
 ];
 
