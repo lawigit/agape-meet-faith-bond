@@ -11,7 +11,9 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "sitemap": "node scripts/sitemap.mjs",
-    "prebuild": "node scripts/sitemap.mjs"
+    "prebuild": "node scripts/sitemap.mjs",
+    "photos:simuler": "node scripts/compresser-photos.mjs",
+    "photos:appliquer": "node scripts/compresser-photos.mjs --appliquer"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
