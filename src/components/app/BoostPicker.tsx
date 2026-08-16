@@ -1,3 +1,4 @@
+import { createPortal } from "react-dom";
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { ArrowRight, Rocket, X } from "lucide-react";
@@ -24,7 +25,17 @@ export function BoostPicker({ onClose, reason }: { onClose: () => void; reason?:
     );
   }
 
-  return (
+  /* PORTAIL VERS `document.body`, et c'est indispensable.
+     Ce panneau est monté depuis le bouton Boost, qui vit dans l'en-tête
+     — un en-tête portant `backdrop-blur-xl`. Or un `backdrop-filter`
+     crée un BLOC CONTENEUR pour les descendants en `position: fixed` :
+     `inset-0` se calait donc sur les soixante pixels de l'en-tête, et
+     l'on ne voyait que le bas du panneau.
+
+     `max-h-[85vh]` et le défilement traitent l'autre cas : un contenu
+     plus haut que l'écran. Sur mobile le panneau colle en bas, et sans
+     cette limite son sommet passerait hors champ, inatteignable. */
+  return createPortal(
     <AnimatePresence>
       <motion.div
         initial={{ opacity: 0 }}
@@ -38,7 +49,7 @@ export function BoostPicker({ onClose, reason }: { onClose: () => void; reason?:
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 40, opacity: 0 }}
           onClick={e => e.stopPropagation()}
-          className="w-full max-w-sm rounded-3xl bg-background border border-border shadow-elegant overflow-hidden"
+          className="w-full max-w-sm max-h-[85vh] overflow-y-auto rounded-3xl bg-background border border-border shadow-elegant"
         >
           <div className="relative px-5 pt-5 pb-4 bg-gradient-to-br from-primary to-primary/85 text-primary-foreground">
             <button
@@ -108,6 +119,7 @@ export function BoostPicker({ onClose, reason }: { onClose: () => void; reason?:
           </div>
         </motion.div>
       </motion.div>
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body,
   );
 }

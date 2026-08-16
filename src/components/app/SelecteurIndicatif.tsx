@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { ChevronDown, Search, X } from "lucide-react";
 import { PAYS, PAYS_PRIORITAIRES, normaliser } from "@/content/pays";
 import { INDICATIFS } from "@/content/indicatifs";
@@ -83,7 +84,13 @@ export function SelecteurIndicatif({
         <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
       </button>
 
-      {ouvert && (
+      {/* Portail vers `document.body`.
+          Ce sélecteur vit DANS la feuille de paiement, dont le fond
+          porte `backdrop-blur-sm`. Un `backdrop-filter` crée un bloc
+          conteneur pour les descendants en `position: fixed` : sans
+          portail, la liste se calerait sur la feuille au lieu de
+          couvrir l'écran. */}
+      {ouvert && createPortal(
         <div
           className="fixed inset-0 z-[80] bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-4"
           onClick={() => setOuvert(false)}
@@ -138,7 +145,8 @@ export function SelecteurIndicatif({
               )}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </>
   );

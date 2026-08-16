@@ -1,3 +1,4 @@
+import { createPortal } from "react-dom";
 import { useState } from "react";
 import { motion } from "motion/react";
 import { CreditCard, Loader2, ShieldCheck, Smartphone, Sparkles, X } from "lucide-react";
@@ -74,7 +75,12 @@ export function CheckoutSheet({
     // En cas de succès la page est redirigée : on garde l'état occupé
   };
 
-  return (
+  /* Portail vers `document.body`.
+     Cette feuille peut être ouverte depuis le bouton Boost de l'en-tête,
+     dont le `backdrop-blur-xl` crée un bloc conteneur pour les
+     descendants en `position: fixed`. Sans portail, elle se calerait
+     sur l'en-tête au lieu de couvrir l'écran. */
+  return createPortal(
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
@@ -155,6 +161,7 @@ export function CheckoutSheet({
           </p>
         </div>
       </motion.div>
-    </motion.div>
+    </motion.div>,
+    document.body,
   );
 }
