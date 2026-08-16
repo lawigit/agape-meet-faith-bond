@@ -1391,10 +1391,12 @@ function ChatView({
         </div>
         <div className="flex-1 min-w-0">
           <div className="font-semibold truncate flex items-center gap-1">
-            <span className="truncate">
-              {chat.profile.firstName}
-              {chat.profile.age > 0 && `, ${chat.profile.age}`}
-            </span>
+            {/* Le prénom seul. L'âge accolé — « Marie, 28 » — a sa place
+                sur une carte de découverte, où l'on compare des profils.
+                En tête d'une conversation, on parle à quelqu'un : son
+                âge n'a plus rien à y faire, et la virgule donnait un air
+                de fiche plutôt que de discussion. */}
+            <span className="truncate">{chat.profile.firstName}</span>
             {chat.profile.verified && <BadgeCheck className="w-4 h-4 text-primary shrink-0" aria-label="Profil certifié" />}
           </div>
           <div className="text-[11px] text-muted-foreground truncate">

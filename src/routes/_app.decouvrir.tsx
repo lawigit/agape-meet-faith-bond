@@ -4,6 +4,8 @@ import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
 import { envoyerDemande, RAISONS } from "@/lib/contacts";
 import { LimiteDemandes } from "@/components/app/LimiteDemandes";
+import { GuideGestes } from "@/components/app/GuideGestes";
+import { PanneauPremium } from "@/components/app/PanneauPremium";
 import { getCurrentUser } from "@/lib/auth";
 import {
   X,
@@ -294,16 +296,28 @@ function DiscoverPage() {
     }
   };
 
-  /** Refus expliqué + raccourci vers les formules, plutôt qu'un blocage muet. */
-  const requirePlan = (message: string) => {
-    toast.error(message, {
-      action: { label: "Voir les formules", onClick: () => navigate({ to: "/abonnement" }) },
-    });
-  };
+  /* Un refus n'est plus une notification rouge qui s'efface.
+     « Réservé aux membres Premium » énonce une interdiction sans dire ce
+     qu'on y gagnerait, et ne laisse rien à faire d'autre que renoncer.
+     Le panneau, lui, explique l'apport et propose une suite. */
+  const [refus, setRefus] = useState<null | {
+    titre: string;
+    texte: string;
+    avantages?: string[];
+    alternative?: { label: string; invite: string; onClick: () => void };
+  }>(null);
 
   const rewind = () => {
     if (!features.rewind) {
-      requirePlan("Revenir en arrière est réservé aux membres Premium");
+      setRefus({
+        titre: "Revenez sur vos pas",
+        texte: "Un profil passé trop vite ? Premium vous laisse revenir en arrière autant de fois que vous le voulez.",
+        avantages: [
+          "Rattrapez un profil écarté par erreur",
+          "Découvrez qui a aimé votre profil",
+          "Likes illimités, au lieu de 25 par jour",
+        ],
+      });
       return;
     }
     doRewind();
@@ -532,31 +546,38 @@ function DiscoverPage() {
           <span className="text-[10px] text-muted-foreground font-medium">Passer</span>
         </div>
 
-        <div className="flex flex-col items-center gap-1">
-          <button
-            onClick={() => swipe("super")}
-            className="w-12 h-12 rounded-full border-2 border-primary bg-background flex items-center justify-center text-primary hover:bg-primary/10 transition-transform active:scale-95 shadow-sm"
-          >
-            <Star className="w-5 h-5" fill="currentColor" />
-          </button>
-          <span className="text-[10px] text-primary font-medium">Super like</span>
-        </div>
+        {/* « Super like » et « J'adore » retirés de la barre.
 
-        <div className="flex flex-col items-center gap-1">
-          <button
-            onClick={() => swipe("right")}
-            className="w-16 h-16 rounded-full border-2 border-gold bg-background shadow-[0_4px_15px_var(--color-gold)]/30 flex items-center justify-center text-gold hover:scale-105 hover:bg-gold/10 transition-all active:scale-95"
-          >
-            <Heart className="w-7 h-7" fill="currentColor" />
-          </button>
-          <span className="text-[10px] text-gold font-medium">J'adore</span>
-        </div>
+            Le LIKE reste accessible : faire glisser la carte vers la
+            droite appelle `swipe("right")`, exactement comme le bouton.
+
+            ⚠️ LE SUPER LIKE, LUI, N'A PLUS AUCUN ACCÈS. La carte ne
+            glisse qu'horizontalement (`drag="x"`) : il n'existe pas de
+            geste vertical pour le déclencher. C'est pourtant un droit
+            payant — 5 par jour en Premium, illimités en VIP — et les
+            compteurs continuent de l'afficher au-dessus des cartes. */}
 
         <div className="flex flex-col items-center gap-1">
           <button
             onClick={() => {
               if (!features.preMatchMessage) {
-                requirePlan("Écrire avant le match est réservé aux membres Premium");
+                /* L'alternative gratuite compte autant que l'offre :
+                   celui qui ne paiera pas aujourd'hui repart avec un
+                   geste accompli plutôt qu'avec un refus. */
+                setRefus({
+                  titre: "Faites le premier pas",
+                  texte: "Écrire avant le match permet de vous présenter en quelques mots — bien plus fort qu'un simple like.",
+                  avantages: [
+                    "Écrivez sans attendre la réciprocité",
+                    "Découvrez qui a aimé votre profil",
+                    "Messages illimités avec vos matchs",
+                  ],
+                  alternative: currentFiltered ? {
+                    invite: "En attendant, vous pouvez lui envoyer une invitation à entrer en contact.",
+                    label: `Inviter ${currentFiltered.firstName}`,
+                    onClick: addContact,
+                  } : undefined,
+                });
                 return;
               }
               if (currentFiltered) setShowMessageModal(currentFiltered);
@@ -759,6 +780,20 @@ function DiscoverPage() {
       <AnimatePresence>
         {detail && <ProfileDetailModal profile={detail} onClose={() => setDetail(null)} />}
       </AnimatePresence>
+
+      {/* Guide des gestes : une fois, a la premiere visite. Sans lui,
+          rien n indique comment aimer un profil. */}
+      <GuideGestes />
+
+      {refus && (
+        <PanneauPremium
+          titre={refus.titre}
+          texte={refus.texte}
+          avantages={refus.avantages}
+          alternative={refus.alternative}
+          onClose={() => setRefus(null)}
+        />
+      )}
 
       {limite && (
         <LimiteDemandes
