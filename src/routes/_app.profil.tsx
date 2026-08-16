@@ -476,21 +476,29 @@ function ProfilePage() {
             Le bouton mène au même panneau que la fusée de l'en-tête —
             quota, achat et refus y sont déjà traités. Réécrire cette
             logique ici l'aurait fait diverger au premier changement. */}
+        {/* Fond DORÉ PLEIN, et non une teinte pâle du violet.
+            La version précédente reprenait la couleur principale à 5 %
+            d'opacité : sur une page déjà faite de cartes claires, elle
+            se fondait dans le décor et ne se lisait pas comme un bouton.
+
+            Le doré est la couleur des offres payantes dans toute
+            l'application — badges VIP, boutons Premium. L'employer ici
+            fait comprendre la nature de l'action avant même la lecture. */}
         <button
           type="button"
           onClick={() => setBoostOuvert(true)}
-          className="mt-4 w-full flex items-center gap-3 rounded-2xl border border-primary/30 bg-primary/5 p-4 text-left hover:bg-primary/10 transition-colors"
+          className="mt-4 w-full flex items-center gap-3 rounded-2xl bg-gold text-gold-foreground p-4 text-left shadow-elegant hover:opacity-95 active:scale-[0.99] transition-all"
         >
-          <span className="w-10 h-10 rounded-xl bg-primary/15 grid place-items-center shrink-0">
-            <Rocket className="w-5 h-5 text-primary" />
+          <span className="w-10 h-10 rounded-xl bg-black/10 grid place-items-center shrink-0">
+            <Rocket className="w-5 h-5" />
           </span>
           <span className="flex-1 min-w-0">
-            <span className="block text-sm font-semibold">Booster mon profil</span>
-            <span className="block text-xs text-muted-foreground mt-0.5 leading-snug">
+            <span className="block text-sm font-bold">Booster mon profil</span>
+            <span className="block text-xs opacity-80 mt-0.5 leading-snug">
               Passez en tête des découvertes et multipliez les profils qui vous voient.
             </span>
           </span>
-          <ArrowRight className="w-4 h-4 text-muted-foreground shrink-0" />
+          <ArrowRight className="w-4 h-4 shrink-0" />
         </button>
       </div>
 
