@@ -336,6 +336,22 @@ function PlanCard({
         </div>
       ) : (
         <div className="mt-4 space-y-2">
+          {/* Introduit la liste des durées. Sans ce titre, on voyait
+              trois prix alignés sans comprendre qu'il fallait en choisir
+              un — ni que le plus long revient moins cher. */}
+          <div className="pb-1">
+            <p className={`text-sm font-semibold ${
+              plan.highlight ? "text-primary-foreground" : "text-foreground"
+            }`}>
+              Choisis ta durée
+            </p>
+            <p className={`text-[11px] leading-snug ${
+              plan.highlight ? "text-primary-foreground/80" : "text-muted-foreground"
+            }`}>
+              Plus c'est long, plus tu économises
+            </p>
+          </div>
+
           {offers.map(offer => {
             const savings = savingsVsMonthly(offer);
             return (
@@ -362,6 +378,14 @@ function PlanCard({
                   )}
                 </span>
                 <span className="flex items-center gap-1.5 text-sm">
+                  {/* Le prix barré passe AVANT et en plus petit : le
+                      montant réellement dû doit rester le plus lisible,
+                      sinon on retient le mauvais chiffre. */}
+                  {offer.originalPriceXOF && offer.originalPriceXOF > offer.priceXOF && (
+                    <span className="text-[11px] font-normal line-through opacity-55">
+                      {formatPrice(offer.originalPriceXOF)}
+                    </span>
+                  )}
                   {formatPrice(offer.priceXOF)}
                   <ArrowRight className="w-3.5 h-3.5" />
                 </span>

@@ -113,6 +113,15 @@ export type Offer = {
   label: string;
   days: number;
   priceXOF: number;
+  /**
+   * Prix de référence, affiché barré à côté du prix réel.
+   *
+   * ⚠️ Un prix barré est une annonce de réduction. Dans la plupart des
+   * législations, le prix de référence doit avoir été RÉELLEMENT
+   * pratiqué — sans quoi c'est une pratique commerciale trompeuse. À
+   * vérifier avant toute campagne s'appuyant dessus.
+   */
+  originalPriceXOF?: number;
   popular?: boolean;
 };
 // Les identifiants produits Chariow (prd_…) ne vivent QUE côté serveur,
@@ -267,6 +276,9 @@ export const OFFERS: Offer[] = [
     label: "15 jours",
     days: 15,
     priceXOF: 2500,
+    // Reference : 4 500 F. Le rapport 1,8 est applique aux autres
+    // durees Premium, pour que la remise annoncee reste coherente.
+    originalPriceXOF: 4500,
   },
   {
     id: "premium_1m",
@@ -275,6 +287,7 @@ export const OFFERS: Offer[] = [
     label: "1 mois",
     days: 30,
     priceXOF: 4000,
+    originalPriceXOF: 7200,
     popular: true,
   },
   {
@@ -284,6 +297,7 @@ export const OFFERS: Offer[] = [
     label: "3 mois",
     days: 90,
     priceXOF: 10500,
+    originalPriceXOF: 18900,
   },
   {
     id: "vip_1m",
@@ -292,6 +306,7 @@ export const OFFERS: Offer[] = [
     label: "1 mois",
     days: 30,
     priceXOF: 12000,
+    originalPriceXOF: 16500,
   },
 ];
 
