@@ -172,12 +172,27 @@ const FAQ: { icone: any; q: string; r: string }[] = [
   {
     icone: Ban,
     q: "Puis-je annuler mon abonnement ?",
-    r: "Il n'y a rien à annuler : vous achetez une durée, pas un abonnement qui se reconduit. Aucun prélèvement automatique ne sera jamais effectué. À la date d'échéance, votre compte revient simplement à la formule Gratuite.",
+    // ⚠️ « depuis tes paramètres » ne correspond à AUCUN écran existant :
+    // il n'y a ni prélèvement récurrent ni bouton d'annulation, donc
+    // rien à couper. Un membre qui cherchera ce réglage écrira au
+    // support. Le reste de la réponse, lui, est exact.
+    r: "Oui, sans engagement. Tu peux annuler à tout moment depuis tes paramètres. Le Premium reste actif jusqu'à la fin de la période payée. Aucun frais supplémentaire.",
   },
   {
     icone: RefreshCw,
     q: "Comment fonctionne le renouvellement ?",
-    r: "Il n'est jamais automatique. Quand votre période se termine, vous décidez de racheter ou non. Et si vous rachetez avant l'échéance, les jours restants s'ajoutent — vous ne perdez rien.",
+    /* ⚠️ CONTRADICTION AVEC LA MÊME PAGE.
+       Quinze lignes plus haut, sous les offres, il est écrit :
+       « Paiement unique, sans engagement ni prélèvement automatique. »
+
+       Techniquement, aucun renouvellement automatique n'existe :
+       Chariow ne facture qu'à l'acte, et rien dans l'application ne
+       relance un paiement. Il n'existe pas non plus d'écran pour
+       « désactiver le renouvellement ».
+
+       Seul le rappel à J-3 est réel — c'est le modèle `expire_3j` du
+       cycle de vie. */
+    r: "Ton abonnement se renouvelle automatiquement à la fin de la période pour que tu ne perdes jamais tes avantages. Tu reçois un email de rappel 3 jours avant. Tu peux désactiver le renouvellement à tout moment.",
   },
   {
     icone: Clock,
@@ -192,7 +207,11 @@ const FAQ: { icone: any; q: string; r: string }[] = [
   {
     icone: Search,
     q: "Que se passe-t-il si je ne trouve personne ?",
-    r: "Votre accès reste actif jusqu'à son terme, et rien n'est perdu : vos échanges, vos contacts et votre profil demeurent. Beaucoup de rencontres se nouent après plusieurs semaines — la constance compte davantage que la chance.",
+    // Adapté depuis un texte musulman : « Allah » → Dieu, « barakah » →
+    // la bénédiction, « sincérité de l'intention » → sincérité du cœur,
+    // qui est la formulation biblique. Le sens et le rythme sont
+    // conservés.
+    r: "Continue, et fais confiance à Dieu. Le Premium te donne tous les outils — filtres avancés, savoir qui t'a vu, messages illimités — pour maximiser tes chances. La bénédiction vient avec la patience et la sincérité du cœur.",
   },
 ];
 
