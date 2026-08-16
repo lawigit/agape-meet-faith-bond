@@ -287,8 +287,14 @@ export const OFFERS: Offer[] = [
     label: "15 jours",
     days: 15,
     priceXOF: 2500,
-    // Reference : 4 500 F. Le rapport 1,8 est applique aux autres
-    // durees Premium, pour que la remise annoncee reste coherente.
+    // Les prix barres montent PLUS VITE que les prix reels, pour que la
+    // remise s'accentue avec la duree : -44 %, -50 %, -55 %. Un taux
+    // identique partout ne donne aucune raison de choisir la longue
+    // duree, et c'est precisement ce qu'on veut encourager.
+    //
+    // Ils restent coherents entre eux : deux fois 15 jours (9 000)
+    // coutent plus que le mois (8 000), trois mois (23 500) moins que
+    // trois fois le mois (24 000).
     originalPriceXOF: 4500,
     boostsOffered: 1,
   },
@@ -299,7 +305,7 @@ export const OFFERS: Offer[] = [
     label: "1 mois",
     days: 30,
     priceXOF: 4000,
-    originalPriceXOF: 7200,
+    originalPriceXOF: 8000,
     boostsOffered: 3,
     popular: true,
   },
@@ -310,7 +316,7 @@ export const OFFERS: Offer[] = [
     label: "3 mois",
     days: 90,
     priceXOF: 10500,
-    originalPriceXOF: 18900,
+    originalPriceXOF: 23500,
     boostsOffered: 11,
   },
   {
@@ -320,7 +326,7 @@ export const OFFERS: Offer[] = [
     label: "1 mois",
     days: 30,
     priceXOF: 12000,
-    originalPriceXOF: 16500,
+    originalPriceXOF: 20500,
   },
 ];
 
