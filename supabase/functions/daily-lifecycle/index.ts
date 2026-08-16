@@ -104,6 +104,93 @@ function rediger(c: Cible): {
         }),
       };
 
+    /**
+     * J+2 — la relance qui rapporte le plus, parce qu'elle ne vend rien.
+     *
+     * Elle raconte ce qui s'est RÉELLEMENT passé sur le profil. Les
+     * nombres viennent de la base et ne sont jamais arrondis vers le
+     * haut : un chiffre gonflé se découvre au premier clic et ruine la
+     * confiance sur tous les envois suivants.
+     *
+     * À zéro vue, on ne prétend pas le contraire — on parle alors de ce
+     * qui manque au profil. Mentir ici serait le plus court chemin vers
+     * une plainte.
+     */
+    case "decouvrez_premium": {
+      const vues = Number(c.donnees?.vues ?? 0);
+      const likes = Number(c.donnees?.likes ?? 0);
+      const active = vues > 0 || likes > 0;
+
+      const chiffres = [
+        vues > 0 ? `<strong style="color:#1f1720">${vues}</strong> personne${vues > 1 ? "s ont" : " a"} regardé votre profil` : null,
+        likes > 0 ? `<strong style="color:#1f1720">${likes}</strong> vous ${likes > 1 ? "ont" : "a"} aimé` : null,
+      ].filter(Boolean).join(" et ");
+
+      return {
+        sujet: active ? "On vous a remarqué sur AgapeMeet" : "Votre profil mérite d'être vu",
+        categorie: "marketing",
+        html: layout({
+          title: active ? "Quelqu'un s'intéresse à vous" : "Faites-vous remarquer",
+          category: "marketing",
+          body: active
+            ? `<p>${bonjour}</p>
+               <p>En deux jours, ${chiffres}.</p>
+               <p>Avec Premium, vous découvrez <strong style="color:#1f1720">qui</strong> —
+               et vous pouvez répondre. Sans cela, ces personnes resteront
+               des silhouettes floutées.</p>
+               <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+                      style="margin:18px 0 0;background:#faf7f8;border-radius:12px">
+                 <tr><td style="padding:14px 16px;font-size:14px;color:#544a50">
+                   Voir qui vous a aimé · Likes illimités · 5 Super Likes par jour ·
+                   Un Boost offert · Filtres avancés
+                 </td></tr>
+               </table>`
+            : `<p>${bonjour}</p>
+               <p>Votre profil n'a pas encore été beaucoup vu. C'est normal
+               les premiers jours — et cela se corrige vite.</p>
+               <p>Une photo nette et une présentation sincère multiplient les
+               visites. Un Boost place votre profil devant tous les autres
+               pendant 24 heures.</p>`,
+          ctaLabel: active ? "Découvrir qui" : "Compléter mon profil",
+          ctaUrl: active ? `${APP_URL}/abonnement` : `${APP_URL}/profil`,
+        }),
+      };
+    }
+
+    /**
+     * J+5 — les atouts, en clair.
+     *
+     * Trois jours après la précédente : deux arguments de vente collés
+     * se lisent comme du harcèlement, et le plafond quotidien ne protège
+     * pas d'une insistance étalée sur la semaine.
+     */
+    case "atouts_premium":
+      return {
+        sujet: "Ce que Premium change, concrètement",
+        categorie: "marketing",
+        html: layout({
+          title: "Cinq choses que vous ne voyez pas",
+          category: "marketing",
+          body: `<p>${bonjour}</p>
+            <p>En formule Gratuite, une partie de ce qui se passe autour de
+            votre profil vous reste invisible :</p>
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+                   style="margin:16px 0;background:#faf7f8;border-radius:12px">
+              <tr><td style="padding:14px 16px;font-size:14px;color:#544a50;line-height:1.7">
+                • <strong style="color:#1f1720">Qui vous a aimé</strong> — les visages restent floutés<br>
+                • <strong style="color:#1f1720">Qui visite votre profil</strong><br>
+                • <strong style="color:#1f1720">Likes illimités</strong> — au lieu de 25 par jour<br>
+                • <strong style="color:#1f1720">Messages illimités</strong> — au lieu de 5<br>
+                • <strong style="color:#1f1720">Filtres avancés</strong> — confession, pratique, ville
+              </td></tr>
+            </table>
+            <p>À partir de <strong style="color:#1f1720">2 500 FCFA</strong> pour
+            quinze jours, sans engagement ni prélèvement automatique.</p>`,
+          ctaLabel: "Voir les formules",
+          ctaUrl: `${APP_URL}/abonnement`,
+        }),
+      };
+
     case "semaine_un":
       return {
         sujet: "Une semaine avec vous",

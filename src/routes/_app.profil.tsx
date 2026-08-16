@@ -3,7 +3,8 @@ import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { getCurrentUser } from "@/lib/auth";
 import { compresserImage } from "@/lib/image";
-import { Save, Camera, X, Upload, Trash2, ArrowLeft, Lock, Crown, Video } from "lucide-react";
+import { BoostPicker } from "@/components/app/BoostPicker";
+import { Save, Camera, X, Upload, Trash2, ArrowLeft, Lock, Crown, Video, Rocket, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { PaysSelect, VilleSelect } from "@/components/app/PaysVilleSelect";
@@ -62,6 +63,7 @@ function ProfilePage() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [boostOuvert, setBoostOuvert] = useState(false);
 
   /**
    * Nombre de photos autorisé.
@@ -465,7 +467,36 @@ function ProfilePage() {
             </div>
           </div>
         </div>
+
+        {/* Booster son profil.
+            Placé au bout de la section des photos, et c'est le bon
+            endroit : on vient de soigner son apparence, la question
+            « qui va la voir ? » se pose d'elle-même.
+
+            Le bouton mène au même panneau que la fusée de l'en-tête —
+            quota, achat et refus y sont déjà traités. Réécrire cette
+            logique ici l'aurait fait diverger au premier changement. */}
+        <button
+          type="button"
+          onClick={() => setBoostOuvert(true)}
+          className="mt-4 w-full flex items-center gap-3 rounded-2xl border border-primary/30 bg-primary/5 p-4 text-left hover:bg-primary/10 transition-colors"
+        >
+          <span className="w-10 h-10 rounded-xl bg-primary/15 grid place-items-center shrink-0">
+            <Rocket className="w-5 h-5 text-primary" />
+          </span>
+          <span className="flex-1 min-w-0">
+            <span className="block text-sm font-semibold">Booster mon profil</span>
+            <span className="block text-xs text-muted-foreground mt-0.5 leading-snug">
+              Passez en tête des découvertes et multipliez les profils qui vous voient.
+            </span>
+          </span>
+          <ArrowRight className="w-4 h-4 text-muted-foreground shrink-0" />
+        </button>
       </div>
+
+      {boostOuvert && (
+        <BoostPicker onClose={() => setBoostOuvert(false)} />
+      )}
 
       <div className="space-y-6 bg-card border border-border/50 rounded-3xl p-5 sm:p-6 mb-6 shadow-soft">
         

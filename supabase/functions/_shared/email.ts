@@ -426,7 +426,46 @@ export function subscriptionExpiringEmail(params: {
  * compte, comme un reçu. Il n'est pas soumis au désabonnement marketing,
  * et n'est envoyé qu'une fois grâce à sa clé de déduplication.
  */
-export function profileVerifiedEmail(params: { firstName: string }) {
+export function profileVerifiedEmail(params: {
+  firstName: string;
+  /**
+   * Lien du canal WhatsApp, lu dans `app_settings.community_whatsapp`.
+   *
+   * Passé en paramètre plutôt qu'écrit ici : vous le changez depuis
+   * l'administration, sans redéployer la fonction. Absent, le bloc
+   * n'est simplement pas affiché — mieux vaut pas de bouton qu'un
+   * bouton mort.
+   */
+  whatsappUrl?: string | null;
+}) {
+  /* Second bouton, en vert WhatsApp, sous le premier.
+     C'est le moment le plus favorable pour le proposer : le membre
+     vient d'apprendre une bonne nouvelle sur son compte. Une invitation
+     envoyée à froid, un autre jour, obtient bien moins. */
+  /* Le bouton est placé DANS le corps, et non via `ctaLabel` : la mise
+     en page n'accepte qu'un seul appel à l'action, déjà pris par
+     « Voir mon profil ». Il est en vert WhatsApp, reconnaissable sans
+     lire le texte.
+
+     Ce moment est le plus favorable pour inviter : le membre vient
+     d'apprendre une bonne nouvelle sur son compte. La même invitation
+     envoyée à froid un autre jour obtient bien moins. */
+  const whatsapp = params.whatsappUrl
+    ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+              style="margin:20px 0 0">
+         <tr><td align="center">
+           <a href="${params.whatsappUrl}"
+              style="display:inline-block;background:#25D366;color:#ffffff;text-decoration:none;
+                     padding:12px 24px;border-radius:999px;font-weight:600;font-size:14px">
+             Rejoindre notre communauté WhatsApp
+           </a>
+           <div style="margin:8px 0 0;font-size:12px;color:#8b7f86">
+             Prières, versets et encouragements chaque jour
+           </div>
+         </td></tr>
+       </table>`
+    : "";
+
   return {
     subject: "Votre profil est certifié — AgapeMeet",
     html: layout({
@@ -448,7 +487,8 @@ export function profileVerifiedEmail(params: { firstName: string }) {
         <p style="margin:14px 0 0;font-size:13px;color:#8b7f86">
           Le badge peut être retiré si votre profil venait à ne plus respecter
           nos conditions d'utilisation.
-        </p>`,
+        </p>
+        ${whatsapp}`,
       ctaLabel: "Voir mon profil",
       ctaUrl: `${APP_URL}/profil`,
     }),

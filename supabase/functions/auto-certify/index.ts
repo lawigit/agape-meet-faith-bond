@@ -55,6 +55,18 @@ serve(async (req) => {
     });
   }
 
+  /* Le lien WhatsApp est lu UNE FOIS, avant la boucle.
+     Le relire à chaque destinataire ferait une requête par e-mail pour
+     une valeur qui ne change pas d'une seconde à l'autre.
+
+     Il vient de `app_settings` : vous le modifiez depuis
+     l'administration sans redéployer. Illisible ou vide, le bouton
+     n'apparaît pas — mieux vaut pas de bouton qu'un lien mort. */
+  const { data: reglage } = await db
+    .from("app_settings").select("value").eq("key", "community_whatsapp").maybeSingle();
+
+  const lienWhatsapp = String((reglage as any)?.value ?? "").trim() || null;
+
   let envoyes = 0, ignores = 0, echecs = 0;
 
   // En SÉRIE. Resend limite le débit, et une rafale d'envois simultanés
@@ -63,7 +75,10 @@ serve(async (req) => {
   for (const c of liste) {
     if (!c.email) { ignores++; continue; }
 
-    const m = profileVerifiedEmail({ firstName: c.first_name || "Membre" });
+    const m = profileVerifiedEmail({
+      firstName: c.first_name || "Membre",
+      whatsappUrl: lienWhatsapp,
+    });
 
     try {
       const res = await sendTransactional({
