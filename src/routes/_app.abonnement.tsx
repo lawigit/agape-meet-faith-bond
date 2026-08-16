@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "motion/react";
 import {
   Check,
   Crown,
+  Gem,
   Eye,
   Star,
   Zap,
@@ -263,6 +264,13 @@ function PlanCard({
   const offers = offersFor(plan.id);
   const free = plan.id === "gratuit";
 
+  /* Une durée est présélectionnée : un bouton d'achat sans rien de
+     coché obligerait à deviner ce qu'on va payer. On propose celle
+     marquée « Populaire », à défaut la première. */
+  const [choisi, setChoisi] = useState<Offer | null>(
+    () => offers.find(o => o.popular) ?? offers[0] ?? null,
+  );
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -359,14 +367,26 @@ function PlanCard({
             const remise = offer.originalPriceXOF && offer.originalPriceXOF > offer.priceXOF
               ? Math.round((1 - offer.priceXOF / offer.originalPriceXOF) * 100)
               : 0;
+            const actif = choisi?.id === offer.id;
             return (
               <button
                 key={offer.id}
-                onClick={() => onChoose(offer)}
+                onClick={() => setChoisi(offer)}
+                aria-pressed={actif}
+                /* Sélection, plus achat direct. Chaque ligne ouvrait
+                   auparavant le paiement au premier clic : on choisissait
+                   et l'on payait d'un même geste, sans pouvoir comparer.
+                   L'anneau marque le choix ; le bouton plus bas engage. */
                 className={`w-full flex items-start justify-between gap-3 px-3.5 py-3 rounded-xl font-semibold transition-all active:scale-[0.98] ${
                   plan.highlight
                     ? "bg-white text-primary hover:bg-white/90"
                     : "bg-primary text-primary-foreground hover:opacity-90"
+                } ${
+                  actif
+                    ? plan.highlight
+                      ? "ring-2 ring-gold ring-offset-2 ring-offset-primary"
+                      : "ring-2 ring-gold ring-offset-2 ring-offset-card"
+                    : "opacity-70 hover:opacity-100"
                 }`}
               >
                 <span className="flex flex-col items-start gap-1 min-w-0">
@@ -405,14 +425,39 @@ function PlanCard({
                       {formatPrice(offer.originalPriceXOF)}
                     </span>
                   )}
-                  <span className="flex items-center gap-1.5 text-sm mt-0.5">
+                  {/* La flèche a disparu : elle promettait un passage à
+                      l'étape suivante, alors que la ligne ne fait plus
+                      que sélectionner. */}
+                  <span className="text-sm mt-0.5">
                     {formatPrice(offer.priceXOF)}
-                    <ArrowRight className="w-3.5 h-3.5" />
                   </span>
                 </span>
               </button>
             );
           })}
+
+          {/* L'engagement se prend ICI, une fois la durée choisie. */}
+          {choisi && (
+            <div className="pt-2">
+              <button
+                onClick={() => onChoose(choisi)}
+                className={`w-full flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold shadow-elegant transition-all active:scale-[0.98] ${
+                  plan.highlight
+                    ? "bg-gold text-gold-foreground hover:opacity-90"
+                    : "bg-primary text-primary-foreground hover:opacity-90"
+                }`}
+              >
+                {plan.id === "vip" ? <Gem className="w-4 h-4" /> : <Crown className="w-4 h-4" />}
+                Devenir membre {plan.name}
+              </button>
+
+              <p className={`text-[10px] text-center mt-2 ${
+                plan.highlight ? "text-primary-foreground/70" : "text-muted-foreground"
+              }`}>
+                Activation instantanée • Annulable en 1 clic
+              </p>
+            </div>
+          )}
         </div>
       )}
     </motion.div>
