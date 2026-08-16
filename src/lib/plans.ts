@@ -77,9 +77,18 @@ export const MESSAGES_BY_LEVEL: Record<PlanLevel, number> = {
   0: 5, 1: 20, 2: 35, 3: 55, 4: -1,
 };
 
-/** Boosts par mois selon le palier. -1 = illimité. */
+/**
+ * Boosts inclus selon le palier — TOTAL SUR LA PÉRIODE, pas par mois.
+ *
+ * Le décompte suivait le mois calendaire : quelqu'un qui achetait le 28
+ * voyait son quota se réinitialiser trois jours plus tard, puis plus
+ * rien pendant tout le mois suivant. Il suit désormais la période
+ * d'abonnement — voir 79_boosts_par_periode.sql.
+ *
+ * -1 = illimité (VIP).
+ */
 export const BOOSTS_BY_LEVEL: Record<PlanLevel, number> = {
-  0: 0, 1: 1, 2: 2, 3: 4, 4: -1,
+  0: 0, 1: 1, 2: 3, 3: 11, 4: -1,
 };
 
 export const LEVEL_LABELS: Record<PlanLevel, string> = {
@@ -122,6 +131,8 @@ export type Offer = {
    * vérifier avant toute campagne s'appuyant dessus.
    */
   originalPriceXOF?: number;
+  /** Boosts inclus dans l'achat, affiches en etiquette sur l'offre. */
+  boostsOffered?: number;
   popular?: boolean;
 };
 // Les identifiants produits Chariow (prd_…) ne vivent QUE côté serveur,
@@ -279,6 +290,7 @@ export const OFFERS: Offer[] = [
     // Reference : 4 500 F. Le rapport 1,8 est applique aux autres
     // durees Premium, pour que la remise annoncee reste coherente.
     originalPriceXOF: 4500,
+    boostsOffered: 1,
   },
   {
     id: "premium_1m",
@@ -288,6 +300,7 @@ export const OFFERS: Offer[] = [
     days: 30,
     priceXOF: 4000,
     originalPriceXOF: 7200,
+    boostsOffered: 3,
     popular: true,
   },
   {
@@ -298,6 +311,7 @@ export const OFFERS: Offer[] = [
     days: 90,
     priceXOF: 10500,
     originalPriceXOF: 18900,
+    boostsOffered: 11,
   },
   {
     id: "vip_1m",

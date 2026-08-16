@@ -353,41 +353,62 @@ function PlanCard({
           </div>
 
           {offers.map(offer => {
-            const savings = savingsVsMonthly(offer);
+            // Remise calculée sur le prix barré, pas sur le tarif
+            // mensuel : c'est le chiffre que le membre peut vérifier
+            // lui-même en regardant les deux nombres affichés.
+            const remise = offer.originalPriceXOF && offer.originalPriceXOF > offer.priceXOF
+              ? Math.round((1 - offer.priceXOF / offer.originalPriceXOF) * 100)
+              : 0;
             return (
               <button
                 key={offer.id}
                 onClick={() => onChoose(offer)}
-                className={`w-full flex items-center justify-between gap-3 px-3.5 py-3 rounded-xl font-semibold transition-all active:scale-[0.98] ${
+                className={`w-full flex items-start justify-between gap-3 px-3.5 py-3 rounded-xl font-semibold transition-all active:scale-[0.98] ${
                   plan.highlight
                     ? "bg-white text-primary hover:bg-white/90"
                     : "bg-primary text-primary-foreground hover:opacity-90"
                 }`}
               >
-                <span className="flex items-center gap-2 text-sm">
-                  {offer.label}
-                  {offer.popular && (
-                    <span className="px-1.5 py-0.5 rounded-full bg-gold text-gold-foreground text-[9px] uppercase tracking-wide">
-                      Populaire
-                    </span>
-                  )}
-                  {savings > 0 && (
-                    <span className="px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 text-[9px] font-bold">
-                      −{savings}%
-                    </span>
-                  )}
+                <span className="flex flex-col items-start gap-1 min-w-0">
+                  <span className="flex items-center gap-2 text-sm">
+                    {offer.label}
+                    {offer.popular && (
+                      <span className="px-1.5 py-0.5 rounded-full bg-gold text-gold-foreground text-[9px] uppercase tracking-wide">
+                        Populaire
+                      </span>
+                    )}
+                    {remise > 0 && (
+                      <span className="px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 text-[9px] font-bold">
+                        −{remise} %
+                      </span>
+                    )}
+                  </span>
+                  {/* Sur sa propre ligne : l'étiquette des Boosts serait
+                      illisible coincée entre la durée et deux prix.
+
+                      Le VIP n'a pas de nombre : ses Boosts sont
+                      illimités. Y afficher un chiffre annoncerait MOINS
+                      que ce qui est réellement accordé. */}
+                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-gold/20 text-gold-foreground text-[9px] font-bold">
+                    <Zap className="w-2.5 h-2.5" />
+                    {offer.boostsOffered
+                      ? `${offer.boostsOffered} Boost${offer.boostsOffered > 1 ? "s" : ""} offert${offer.boostsOffered > 1 ? "s" : ""}`
+                      : "Boosts illimités"}
+                  </span>
                 </span>
-                <span className="flex items-center gap-1.5 text-sm">
-                  {/* Le prix barré passe AVANT et en plus petit : le
-                      montant réellement dû doit rester le plus lisible,
-                      sinon on retient le mauvais chiffre. */}
+                {/* Prix barré au-dessus, prix réel en dessous : le
+                    montant dû doit rester le plus lisible des deux,
+                    sinon c'est le mauvais chiffre qu'on retient. */}
+                <span className="flex flex-col items-end shrink-0">
                   {offer.originalPriceXOF && offer.originalPriceXOF > offer.priceXOF && (
-                    <span className="text-[11px] font-normal line-through opacity-55">
+                    <span className="text-[10px] font-normal line-through opacity-55 leading-none">
                       {formatPrice(offer.originalPriceXOF)}
                     </span>
                   )}
-                  {formatPrice(offer.priceXOF)}
-                  <ArrowRight className="w-3.5 h-3.5" />
+                  <span className="flex items-center gap-1.5 text-sm mt-0.5">
+                    {formatPrice(offer.priceXOF)}
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </span>
                 </span>
               </button>
             );
