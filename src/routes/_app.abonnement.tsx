@@ -20,6 +20,7 @@ import {
 import { toast } from "sonner";
 import { CheckoutSheet } from "@/components/app/CheckoutSheet";
 import { SupportContactBlock, WhatsAppButton } from "@/components/SupportContact";
+import { AbonnementPersuasion } from "@/components/app/AbonnementPersuasion";
 import {
   PLANS,
   formatPrice,
@@ -212,6 +213,18 @@ function SubscriptionPage() {
             <br />
             Un nouvel achat pendant une période active <strong>prolonge</strong> votre abonnement.
           </p>
+
+          {/* Preuve, objections, appel — dans l'ordre où les questions se
+              posent. Le bouton du bloc final rouvre le paiement sur la
+              formule Premium mensuelle, celle que la page met en avant :
+              redescendre chercher une durée annulerait l'élan. */}
+          <AbonnementPersuasion
+            onPasser={() => {
+              const cible = offersFor("premium").find(o => o.popular)
+                ?? offersFor("premium")[0];
+              if (cible) setCheckoutOffer(cible);
+            }}
+          />
         </>
       )}
 
