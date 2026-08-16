@@ -4,8 +4,16 @@ import { CreditCard, Loader2, ShieldCheck, Smartphone, Sparkles, X } from "lucid
 import { toast } from "sonner";
 import { formatPrice } from "@/lib/plans";
 import { startCheckout } from "@/lib/checkout";
+import { SelecteurIndicatif } from "@/components/app/SelecteurIndicatif";
 
-/** Indicatifs les plus courants pour l'audience d'AgapeMeet. */
+/**
+ * Pays proposés par défaut.
+ *
+ * ⚠️ Cette liste ne pilote PLUS le sélecteur : il lit désormais les 187
+ * pays de `pays.ts` avec leur indicatif, et propose une recherche. Elle
+ * ne sert qu'à fournir la valeur initiale, et reste exportée parce que
+ * d'autres écrans l'importent.
+ */
 export const COUNTRIES = [
   { code: "TG", dial: "+228", label: "Togo" },
   { code: "BJ", dial: "+229", label: "Bénin" },
@@ -105,17 +113,7 @@ export function CheckoutSheet({
           <div>
             <label className="text-xs font-medium">Numéro de téléphone</label>
             <div className="mt-1.5 flex gap-2">
-              <select
-                value={country.code}
-                onChange={e => setCountry(COUNTRIES.find(c => c.code === e.target.value) ?? COUNTRIES[0])}
-                className="px-2 py-2.5 rounded-xl bg-secondary border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
-              >
-                {COUNTRIES.map(c => (
-                  <option key={c.code} value={c.code}>
-                    {c.dial} {c.label}
-                  </option>
-                ))}
-              </select>
+              <SelecteurIndicatif valeur={country} onChange={setCountry} />
               <input
                 value={phone}
                 onChange={e => setPhone(e.target.value)}
