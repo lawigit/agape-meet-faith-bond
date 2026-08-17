@@ -26,6 +26,8 @@ import {
 import { ReportDialog } from "@/components/app/ReportDialog";
 import { useSubscription } from "@/lib/subscription";
 import { fetchQuotas, quotaErrorMessage, type Quotas } from "@/lib/quotas";
+import { limiteDepuisErreur, type ContenuLimite } from "@/lib/limites";
+import { PanneauPremium } from "@/components/app/PanneauPremium";
 import { useNavigate } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_app/messages")({
@@ -904,6 +906,7 @@ function ChatView({
   const [callState, setCallState] = useState<{ type: "audio" | "video"; callId: string } | null>(null);
   const [reportOpen, setReportOpen] = useState(false);
   const [startingCall, setStartingCall] = useState(false);
+  const [arretPremium, setArretPremium] = useState<ContenuLimite | null>(null);
   const { features } = useSubscription();
   const navigate = useNavigate();
 
@@ -1103,9 +1106,17 @@ function ChatView({
 
     // La base applique les limites de la formule Gratuit : on traduit son
     // refus plutôt que d'afficher « Erreur d'envoi », qui n'apprend rien.
-    const limit = quotaErrorMessage(error);
-    if (limit) {
-      toast.error(limit, {
+    /* Une limite de formule ouvre un PANNEAU : le membre vient
+       d'ecrire cinq messages, il est engage. Une notification rouge
+       fermerait le sujet au moment le plus favorable.
+
+       Les autres erreurs restent des notifications : une panne reseau
+       n'a rien a vendre. */
+    const arret = limiteDepuisErreur(error);
+    if (arret) {
+      setArretPremium(arret);
+    } else if (quotaErrorMessage(error)) {
+      toast.error(quotaErrorMessage(error)!, {
         action: { label: "Voir les formules", onClick: () => navigate({ to: "/abonnement" }) },
       });
     } else {
@@ -1716,6 +1727,17 @@ function ChatView({
           </button>
         )}
       </div>
+      )}
+
+      {/* Quota de messages atteint : un panneau, au moment précis où le
+          membre est le plus engagé — il vient d'écrire cinq fois. */}
+      {arretPremium && (
+        <PanneauPremium
+          titre={arretPremium.titre}
+          texte={arretPremium.texte}
+          avantages={arretPremium.avantages}
+          onClose={() => setArretPremium(null)}
+        />
       )}
 
       <ReportDialog

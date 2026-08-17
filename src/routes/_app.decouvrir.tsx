@@ -36,6 +36,9 @@ import { Drapeau } from "@/components/app/Drapeau";
 import { BOOST_DURATION_MIN, boostErrorMessage, fetchBoostStatus, startBoost, type BoostStatus } from "@/lib/boost";
 import { BoostPicker } from "@/components/app/BoostPicker";
 import { daysUntilSuperLike, fetchQuotas, quotaErrorMessage, type Quotas } from "@/lib/quotas";
+// `limite` est deja un etat de ce composant (panneau de quota des
+// demandes) : l alias evite que l un masque l autre en silence.
+import { limite as texteLimite, limiteDepuisErreur } from "@/lib/limites";
 
 
 
@@ -225,17 +228,20 @@ function DiscoverPage() {
     if (action === "super") {
       const wait = daysUntilSuperLike(quotas?.superLikeAvailableAt ?? null);
       if (wait > 0) {
-        upsell(`Prochain Super Like dans ${wait} jour${wait > 1 ? "s" : ""}`);
+        setRefus(texteLimite("superlike"));
         return;
       }
       if (!consumeSuperLike()) {
-        upsell("Plus de Super Likes disponibles");
+        setRefus(texteLimite("superlike"));
         return;
       }
     }
 
+    /* Une limite atteinte est le MEILLEUR moment pour proposer : le
+       besoin vient d'être ressenti. Une notification rouge fermerait le
+       sujet ; le panneau l'ouvre. */
     if (action === "right" && quotas && quotas.likesLeft === 0) {
-      upsell("Vous avez atteint vos 25 likes du jour");
+      setRefus(texteLimite("likes"));
       return;
     }
 
@@ -258,9 +264,12 @@ function DiscoverPage() {
         // La base a le dernier mot : elle peut refuser même si l'interface
         // pensait le quota disponible (deuxième onglet ouvert, par exemple).
         if (swipeError) {
+          // La base a pu refuser une limite que l'interface croyait
+          // disponible : on affiche alors le même panneau.
+          const arret = limiteDepuisErreur(swipeError);
           const message = quotaErrorMessage(swipeError);
-          if (message) {
-            upsell(message);
+          if (arret || message) {
+            if (arret) setRefus(arret); else upsell(message!);
             setIndex(i => Math.max(0, i - 1));
             setHistory(h => h.slice(0, -1));
             refreshQuotas();
