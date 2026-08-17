@@ -522,13 +522,13 @@ function DiscoverPage() {
         <div className="flex flex-col items-center gap-1">
           <button
             onClick={rewind}
-            className={`relative w-10 h-10 rounded-full border-2 flex items-center justify-center transition-transform active:scale-95 shadow-sm ${
+            className={`relative w-12 h-12 rounded-full border-2 flex items-center justify-center transition-transform active:scale-95 shadow-sm ${
               features.rewind
                 ? "border-gold bg-background text-gold hover:bg-gold/10"
                 : "border-border bg-secondary/60 text-muted-foreground"
             }`}
           >
-            <Undo2 className="w-4 h-4" />
+            <Undo2 className="w-5 h-5" />
             {!features.rewind && (
               <Lock className="absolute -top-1 -right-1 w-3 h-3 text-gold bg-background rounded-full p-[1px]" />
             )}
@@ -539,9 +539,9 @@ function DiscoverPage() {
         <div className="flex flex-col items-center gap-1">
           <button
             onClick={() => swipe("left")}
-            className="w-12 h-12 rounded-full border-2 border-muted-foreground/50 bg-background flex items-center justify-center text-muted-foreground hover:bg-muted/50 transition-transform active:scale-95 shadow-sm"
+            className="w-14 h-14 rounded-full border-2 border-muted-foreground/50 bg-background flex items-center justify-center text-muted-foreground hover:bg-muted/50 transition-transform active:scale-95 shadow-sm"
           >
-            <X className="w-5 h-5" />
+            <X className="w-6 h-6" />
           </button>
           <span className="text-[10px] text-muted-foreground font-medium">Passer</span>
         </div>
@@ -583,7 +583,7 @@ function DiscoverPage() {
               if (currentFiltered) setShowMessageModal(currentFiltered);
               else toast.info("Chargement…");
             }}
-            className={`relative w-12 h-12 rounded-full border-2 flex items-center justify-center transition-transform active:scale-95 shadow-sm ${
+            className={`relative w-14 h-14 rounded-full border-2 flex items-center justify-center transition-transform active:scale-95 shadow-sm ${
               features.preMatchMessage
                 ? "border-primary/60 bg-background text-primary/80 hover:bg-primary/10"
                 : "border-border bg-secondary/60 text-muted-foreground"
@@ -600,23 +600,32 @@ function DiscoverPage() {
         {/* L'état est montré sur le bouton : sans cela, rien ne distingue
             une invitation envoyée d'une invitation à envoyer, et on la
             renvoie — pour se voir refuser par la contrainte d'unicité. */}
+        {/* Pastille pleine, icône ET libellé sur la même ligne — plutôt
+            qu'un rond de plus dans une rangée de ronds.
+
+            C'est le geste qui crée le lien, désormais le seul : lui
+            donner la même forme qu'aux trois autres le noyait dans la
+            barre. Le bleu plein, réservé à ce bouton, le désigne comme
+            l'action principale sans avoir à lire.
+
+            Une fois envoyée, il passe au vert et devient inerte : rien
+            ne distinguerait autrement une invitation partie d'une
+            invitation à envoyer. */}
         <div className="flex flex-col items-center gap-1">
           <button
             onClick={addContact}
             disabled={invites.has(currentFiltered?.id ?? "")}
-            className={`w-10 h-10 rounded-full border-2 flex items-center justify-center transition-transform active:scale-95 shadow-sm ${
+            className={`h-14 px-5 rounded-2xl flex items-center gap-2 font-semibold text-sm shadow-elegant transition-transform active:scale-95 ${
               invites.has(currentFiltered?.id ?? "")
-                ? "border-emerald-500/60 bg-emerald-500/10 text-emerald-600"
-                : "border-primary/80 bg-background text-primary hover:bg-primary/10"
+                ? "bg-emerald-600 text-white"
+                : "bg-primary text-primary-foreground hover:opacity-90"
             }`}
           >
             {invites.has(currentFiltered?.id ?? "")
-              ? <CheckCircle2 className="w-4 h-4" />
-              : <UserPlus className="w-4 h-4" />}
-          </button>
-          <span className="text-[10px] text-muted-foreground font-medium">
+              ? <CheckCircle2 className="w-5 h-5" />
+              : <UserPlus className="w-5 h-5" />}
             {invites.has(currentFiltered?.id ?? "") ? "Invité" : "Ajouter"}
-          </span>
+          </button>
         </div>
       </div>
 

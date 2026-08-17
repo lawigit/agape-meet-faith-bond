@@ -55,19 +55,19 @@ export function quotaErrorMessage(error: unknown): string | null {
   if (raw.includes("FREE_MESSAGE_QUOTA") || raw.includes("MESSAGE_QUOTA_REACHED"))
     return "Vous avez atteint votre quota de messages du jour";
   if (raw.includes("VIP_ONLY_VIDEO_MESSAGE"))
-    return "Envoyer une vidéo en conversation est réservé aux membres VIP";
+    return "Passez VIP pour envoyer des vidéos en conversation";
   if (raw.includes("VIP_ONLY_VIDEO_CALL"))
-    return "Les appels vidéo sont réservés aux membres VIP";
+    return "Passez VIP pour vous voir en appel vidéo";
   if (raw.includes("VIP_ONLY_VIDEO_POST"))
-    return "Publier une vidéo est réservé aux membres VIP";
+    return "Passez VIP pour publier des vidéos";
   if (raw.includes("FREE_NO_VOICE"))
-    return "Les messages vocaux sont réservés aux membres Premium";
+    return "Passez Premium pour envoyer des messages vocaux";
   if (raw.includes("FREE_LIKE_QUOTA"))
     return "Vous avez atteint vos 25 likes du jour";
   if (raw.includes("FREE_SUPERLIKE_COOLDOWN"))
     return "Un Super Like par semaine en formule Gratuit";
   if (raw.includes("FREE_NO_CALLS"))
-    return "Les appels sont réservés aux membres Premium";
+    return "Passez Premium pour appeler vos matchs";
   if (raw.includes("FREE_NO_MEDIA_POST"))
     return "Les publications avec photo ou vidéo sont réservées aux membres Premium";
   // Levé par `block_if_suspended()` (migration 45) sur messages, swipes,

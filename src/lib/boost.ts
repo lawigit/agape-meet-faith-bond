@@ -55,7 +55,7 @@ export async function startBoost(): Promise<BoostResult> {
 export function boostErrorMessage(reason: BoostResult extends { ok: false } ? never : string, expiresAt?: string) {
   switch (reason) {
     case "plan":
-      return "Le Boost est réservé aux membres Premium et VIP";
+      return "Passez Premium pour placer votre profil en tête des découvertes";
     case "quota":
       return "Vous avez déjà utilisé votre Boost ce mois-ci";
     case "already_active":

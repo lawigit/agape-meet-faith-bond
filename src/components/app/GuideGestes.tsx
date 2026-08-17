@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { createPortal } from "react-dom";
-import { Heart, X, MessageCircle, UserPlus, Undo2, Hand } from "lucide-react";
+import { X, MessageCircle, UserPlus, Undo2, Hand } from "lucide-react";
 
 /**
  * Guide des gestes — affiché UNE FOIS, à la première visite.
@@ -77,38 +77,39 @@ export function GuideGestes() {
           </div>
 
           <div className="p-5 space-y-4">
-            {/* Le geste d'abord, et illustré : c'est LUI qui bloque. */}
-            <div className="rounded-2xl border border-border bg-secondary/40 p-4">
-              <div className="flex items-center justify-between gap-2 text-center">
-                <div className="flex-1">
-                  <div className="w-11 h-11 rounded-full bg-background border-2 border-muted-foreground/40 mx-auto flex items-center justify-center text-muted-foreground">
-                    <X className="w-5 h-5" />
-                  </div>
-                  <p className="text-[11px] font-semibold mt-1.5">Glissez à gauche</p>
-                  <p className="text-[10px] text-muted-foreground">pour passer</p>
-                </div>
+            {/* Ni « J'adore » ni « Super like » : ces deux actions ont été
+                retirées de l'écran. Les mentionner enverrait chercher des
+                boutons qui n'existent plus — le plus sûr moyen de perdre
+                quelqu'un qu'on voulait guider.
 
-                <div className="text-2xl text-muted-foreground/40">←→</div>
-
-                <div className="flex-1">
-                  <div className="w-11 h-11 rounded-full bg-background border-2 border-gold mx-auto flex items-center justify-center text-gold">
-                    <Heart className="w-5 h-5" fill="currentColor" />
-                  </div>
-                  <p className="text-[11px] font-semibold mt-1.5">Glissez à droite</p>
-                  <p className="text-[10px] text-muted-foreground">si le profil vous plaît</p>
-                </div>
+                Le guide présente donc ce qui reste : on parcourt, et l'on
+                invite. « Ajouter » est mis en avant, c'est désormais le
+                geste qui crée le lien. */}
+            <div className="rounded-2xl border border-primary/30 bg-primary/5 p-4 text-center">
+              <div className="w-12 h-12 rounded-full bg-primary/15 mx-auto flex items-center justify-center text-primary">
+                <UserPlus className="w-6 h-6" />
               </div>
+              <p className="text-sm font-semibold mt-2">
+                Une personne vous plaît ?
+              </p>
+              <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                Touchez <strong className="text-foreground">Ajouter</strong> pour lui
+                envoyer une invitation. Si elle accepte, votre conversation s'ouvre
+                aussitôt.
+              </p>
             </div>
 
-            <p className="text-xs text-muted-foreground text-center leading-relaxed">
-              Si la personne vous aime aussi, c'est un <strong className="text-foreground">match</strong> —
-              et vous pouvez commencer à discuter.
-            </p>
+            <div className="rounded-2xl border border-border bg-secondary/40 p-4 text-center">
+              <div className="w-11 h-11 rounded-full bg-background border-2 border-muted-foreground/40 mx-auto flex items-center justify-center text-muted-foreground">
+                <X className="w-5 h-5" />
+              </div>
+              <p className="text-[11px] font-semibold mt-1.5">Glissez à gauche, ou touchez Passer</p>
+              <p className="text-[10px] text-muted-foreground">pour voir le profil suivant</p>
+            </div>
 
             <div className="space-y-2.5 pt-1">
               <Ligne icone={Undo2} titre="Retour" texte="Revenir sur le profil précédent." />
-              <Ligne icone={MessageCircle} titre="Message" texte="Écrire sans attendre le match." />
-              <Ligne icone={UserPlus} titre="Ajouter" texte="Envoyer une invitation à entrer en contact." />
+              <Ligne icone={MessageCircle} titre="Message" texte="Écrire directement, sans attendre." />
             </div>
 
             <button

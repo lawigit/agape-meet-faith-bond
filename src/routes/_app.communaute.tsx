@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { GuideEcran } from "@/components/app/GuideEcran";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
@@ -592,14 +593,14 @@ function CommunityPage() {
     // Le trigger en base refuserait la publication : autant ne pas
     // téléverser un fichier pour rien, ni laisser espérer l'utilisateur.
     if (composerMediaType === "video" && !features.communityVideo) {
-      toast.error("Publier une vidéo est réservé aux membres VIP", {
+      toast.error("Passez VIP pour publier des vidéos dans la communauté", {
         action: { label: "Voir les formules", onClick: () => navigate({ to: "/abonnement" }) },
       });
       return { image_url: null, video_url: null };
     }
 
     if (!features.communityMedia) {
-      toast.error("Publier une photo ou une vidéo est réservé aux membres Premium", {
+      toast.error("Passez Premium pour illustrer vos publications", {
         action: { label: "Voir les formules", onClick: () => navigate({ to: "/abonnement" }) },
       });
       return { image_url: null, video_url: null };
@@ -890,6 +891,8 @@ function CommunityPage() {
 
   return (
     <div className="px-4 pt-4 pb-24">
+      <GuideEcran ecran="communaute" />
+
       <h1 className="font-serif text-2xl font-semibold">Communauté</h1>
       <p className="text-xs text-muted-foreground mb-4">Ensemble, grandissons dans la foi.</p>
 
@@ -1009,7 +1012,7 @@ function CommunityPage() {
               id="composer-image-btn"
               onClick={() => {
                 if (!features.communityMedia) {
-                  toast.error("Publier une photo est réservé aux membres Premium", {
+                  toast.error("Passez Premium pour publier avec des photos", {
                     action: { label: "Voir les formules", onClick: () => navigate({ to: "/abonnement" }) },
                   });
                   return;
@@ -1019,7 +1022,7 @@ function CommunityPage() {
               disabled={uploadingMedia || publishing}
               title={features.communityMedia
                 ? "Ajouter une image (max 5 MB)"
-                : "Réservé aux membres Premium"}
+                : "Passe Premium pour ajouter une photo"}
               className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-medium border transition-all disabled:opacity-40 ${
                 composerMediaType === "image"
                   ? "border-primary bg-primary/10 text-primary"
@@ -1039,7 +1042,7 @@ function CommunityPage() {
               id="composer-video-btn"
               onClick={() => {
                 if (!features.communityVideo) {
-                  toast.error("Publier une vidéo est réservé aux membres VIP", {
+                  toast.error("Passez VIP pour publier des vidéos dans la communauté", {
                     action: { label: "Voir les formules", onClick: () => navigate({ to: "/abonnement" }) },
                   });
                   return;
@@ -1049,7 +1052,7 @@ function CommunityPage() {
               disabled={uploadingMedia || publishing}
               title={features.communityVideo
                 ? "Ajouter une vidéo (max 25 MB)"
-                : "Réservé aux membres VIP"}
+                : "Passe VIP pour ajouter une vidéo"}
               className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-medium border transition-all disabled:opacity-40 ${
                 composerMediaType === "video"
                   ? "border-primary bg-primary/10 text-primary"

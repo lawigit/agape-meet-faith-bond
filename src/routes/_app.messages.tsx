@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { GuideEcran } from "@/components/app/GuideEcran";
 import { lazy, Suspense, useEffect, useMemo, useState, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { supabase } from "@/lib/supabase";
@@ -679,6 +680,8 @@ function MessagesPage() {
 
   return (
     <div className="px-4 pt-4">
+      <GuideEcran ecran="messages" />
+
       <div className="flex items-baseline gap-2 mb-3">
         <h1 className="font-serif text-2xl font-semibold">Messages</h1>
         {totalUnread > 0 && (
@@ -913,11 +916,11 @@ function ChatView({
   const startCall = async (type: "audio" | "video") => {
     if (startingCall) return;
     if (!features.calls) {
-      requirePlan("Les appels sont réservés aux membres Premium");
+      requirePlan("Passez Premium pour appeler vos matchs");
       return;
     }
     if (type === "video" && !features.videoCalls) {
-      requirePlan("Les appels vidéo sont réservés aux membres VIP");
+      requirePlan("Passez VIP pour vous voir en appel vidéo");
       return;
     }
     setStartingCall(true);
@@ -1127,7 +1130,7 @@ function ChatView({
 
     // Inutile de téléverser un fichier que la base refusera ensuite
     if (type === "video" && !features.videoMessages) {
-      requirePlan("L'envoi de vidéos en conversation est réservé aux membres VIP");
+      requirePlan("Passez VIP pour envoyer des vidéos en conversation");
       e.target.value = "";
       return;
     }
@@ -1175,7 +1178,7 @@ function ChatView({
   const startRecording = async () => {
     if (recording || uploading) return;
     if (!features.voiceMessages) {
-      requirePlan("Les messages vocaux sont réservés aux membres Premium");
+      requirePlan("Passez Premium pour envoyer des messages vocaux");
       return;
     }
 

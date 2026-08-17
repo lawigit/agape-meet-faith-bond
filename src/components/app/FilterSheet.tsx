@@ -51,7 +51,7 @@ export function FilterSheet({
   };
 
   const upsell = () => {
-    toast.error("Les filtres avancés sont réservés aux membres Premium", {
+    toast.error("Passez Premium pour filtrer par confession, ville et distance", {
       action: { label: "Voir les formules", onClick: () => navigate({ to: "/abonnement" }) },
     });
   };
@@ -176,7 +176,7 @@ export function FilterSheet({
                 <Crown className="w-5 h-5 text-gold shrink-0 mt-0.5" />
                 <div className="min-w-0">
                   <p className="text-sm font-semibold">
-                    Ces sept filtres sont réservés aux membres Premium
+                    Passez Premium pour affiner votre recherche avec ces sept filtres
                   </p>
                   <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
                     Situation matrimoniale, distance, confession, fréquentation

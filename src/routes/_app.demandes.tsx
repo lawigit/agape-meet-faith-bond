@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { GuideEcran } from "@/components/app/GuideEcran";
 import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import {
@@ -135,6 +136,8 @@ function RequestsPage() {
 
   return (
     <div className="px-4 pt-4 pb-8">
+      <GuideEcran ecran="demandes" />
+
       <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="font-serif text-2xl font-semibold flex items-center gap-2">

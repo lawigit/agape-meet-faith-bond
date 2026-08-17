@@ -19,6 +19,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { Lock } from "lucide-react";
 import { publicPlanOf } from "@/lib/badges";
 import { MesDemandes } from "@/components/app/MesDemandes";
+import { GuideEcran } from "@/components/app/GuideEcran";
 
 export const Route = createFileRoute("/_app/accueil")({
   head: () => ({
@@ -189,7 +190,7 @@ function HomePage() {
 
   const updateVisibility = async (newVis: "tous" | "demande" | "pause") => {
     if (!features.visibilityControl) {
-      toast.error("Le réglage de visibilité est réservé aux membres Premium", {
+      toast.error("Passez Premium pour choisir qui peut voir votre profil", {
         action: { label: "Voir les formules", onClick: () => navigate({ to: "/abonnement" }) },
       });
       return;
@@ -255,6 +256,8 @@ function HomePage() {
 
   return (
     <div className="pt-4">
+      <GuideEcran ecran="accueil" />
+
       {/* Rappel : sans ça, on oublie qu'on est masqué et on s'étonne du silence */}
       {visibility !== "tous" && !loading && (
         <div className="mx-4 mb-3 rounded-xl border border-gold/40 bg-gold/10 px-3 py-2.5 flex items-center gap-2.5">
@@ -482,7 +485,7 @@ function HomePage() {
                     {!features.visibilityControl && <Lock className="w-3 h-3 text-gold" />}
                   </h3>
                   <p className="text-xs text-muted-foreground">
-                    {features.visibilityControl ? "Choisis qui peut voir ton profil" : "Réservé aux membres Premium"}
+                    {features.visibilityControl ? "Choisis qui peut voir ton profil" : "Passe Premium pour régler ta visibilité"}
                   </p>
                 </div>
               </div>

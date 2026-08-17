@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { GuideEcran } from "@/components/app/GuideEcran";
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { getCurrentUser } from "@/lib/auth";
@@ -287,6 +288,8 @@ function ProfilePage() {
 
   return (
     <div className="px-4 pt-4 pb-12 max-w-lg mx-auto">
+      <GuideEcran ecran="profil" />
+
       <div className="flex items-center gap-3 mb-6">
         <button onClick={() => navigate({ to: "/accueil" })} className="w-10 h-10 rounded-full border border-border flex items-center justify-center hover:bg-secondary transition-colors">
           <ArrowLeft className="w-5 h-5" />

@@ -55,12 +55,15 @@ const GUIDES: Record<EcranGuide, Guide> = {
       {
         icone: Compass,
         titre: "2. Découvrez des profils",
-        texte: "Dans « Découvrir », faites glisser à droite si la personne vous plaît, à gauche sinon. Prenez le temps de lire.",
+        texte: "Dans « Découvrir », parcourez les profils un à un. Prenez le temps de lire : la présentation en dit souvent plus que la photo.",
       },
       {
-        icone: MessageCircle,
-        titre: "3. Écrivez",
-        texte: "Quand l'intérêt est réciproque, la conversation s'ouvre. Un premier message simple et personnel vaut mieux qu'un « salut ».",
+        icone: UserPlus,
+        // « Ajouter » et non le like : les actions J'adore et Super like
+        // ont été retirées de l'écran Découvrir. Décrire un geste qui
+        // n'existe plus enverrait chercher un bouton absent.
+        titre: "3. Envoyez une invitation",
+        texte: "Touchez « Ajouter » sur la personne qui vous plaît. Si elle accepte, votre conversation s'ouvre aussitôt.",
       },
     ],
     action: { label: "Compléter mon profil", to: "/profil" },
