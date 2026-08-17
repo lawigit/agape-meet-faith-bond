@@ -128,6 +128,54 @@ export const FIELD_LABELS: Record<string, string> = {
   flaws: "Mes défauts",
 };
 
+/**
+ * Foi, pratique et intentions — traduction des valeurs stockées.
+ *
+ * La base garde des clés courtes (`hebdomadaire`, `pas_maintenant`) que
+ * le formulaire de /profil sait afficher, mais qui étaient illisibles
+ * partout ailleurs : une fiche montrait « pas_maintenant » à l'écran.
+ *
+ * Ces tables sont la copie exacte des `<option>` du formulaire. Si l'une
+ * bouge, l'autre doit bouger — c'est le prix d'un vocabulaire unique.
+ */
+export const PRACTICE_LABELS: Record<string, string> = {
+  pratiquant: "Pratiquant régulier",
+  occasionnel: "Occasionnel",
+  croyant: "Croyant non pratiquant",
+  decouverte: "En découverte",
+};
+
+export const BAPTIZED_LABELS: Record<string, string> = {
+  oui: "Baptisé(e)",
+  non: "Pas encore baptisé(e)",
+  prevu: "Baptême prévu prochainement",
+};
+
+export const ATTENDANCE_LABELS: Record<string, string> = {
+  hebdomadaire: "Toutes les semaines",
+  mensuel: "Quelques fois par mois",
+  fetes: "Seulement aux fêtes",
+  jamais: "Presque jamais",
+};
+
+export const INTENT_LABELS: Record<string, string> = {
+  serieux: "Je cherche le mariage",
+  ouvert: "Ouvert(e) à l'idée",
+  pas_maintenant: "Pas pour le moment",
+};
+
+export const HAS_CHILDREN_LABELS: Record<string, string> = {
+  oui: "Oui",
+  non: "Non",
+};
+
+export const WANTS_CHILDREN_LABELS: Record<string, string> = {
+  oui: "Oui",
+  non: "Non",
+  ouvert: "Ouvert(e) à l'idée",
+  plus: "Pas d'autres enfants",
+};
+
 /** Type des champs complémentaires, tel que stocké. */
 export type ProfileExtras = {
   marital_status: string;

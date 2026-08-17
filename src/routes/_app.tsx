@@ -1,6 +1,7 @@
 import { createFileRoute, Outlet, Link, useNavigate } from "@tanstack/react-router";
 import { BottomNav } from "@/components/app/BottomNav";
 import { MenuParrainage } from "@/components/app/MenuParrainage";
+import { MenuNotifications } from "@/components/app/MenuNotifications";
 import { Bell, Crown, Rocket, Shield, User } from "lucide-react";
 import {
   BOOST_DURATION_MIN,
@@ -22,7 +23,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Camera, Settings, Languages, Package, CreditCard, Ban, Trash2, LogOut, MessageSquare, Heart, LifeBuoy } from "lucide-react";
+import { Camera, Settings, Languages, Package, CreditCard, Ban, Trash2, LogOut, LifeBuoy } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import {
@@ -358,68 +359,7 @@ function AppLayout() {
                 <Crown className="w-4 h-4" />
               </Link>
               <BoostButton />
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button
-                    aria-label="Notifications"
-                    className="relative w-9 h-9 rounded-full border border-border bg-background hover:bg-secondary flex items-center justify-center transition-transform hover:scale-105"
-                  >
-                    <Bell className="w-4 h-4" />
-                    <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-primary" />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-80 rounded-2xl shadow-elegant border-border/50 bg-background/95 backdrop-blur-xl p-0 mt-2">
-                  <div className="px-4 py-3 border-b border-border/50 flex justify-between items-center">
-                    <span className="font-semibold text-sm">Notifications</span>
-                    <span className="text-xs text-primary font-medium cursor-pointer">Tout marquer comme lu</span>
-                  </div>
-                  <div className="max-h-[300px] overflow-y-auto">
-                    <DropdownMenuItem asChild className="p-3 m-1 rounded-xl cursor-pointer hover:bg-secondary flex items-start gap-3">
-                      {/* Vers l'accueil : c'est là que les Super Likes
-                          s'affichent désormais. */}
-                      <Link to="/accueil">
-                        <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                          <Heart className="w-4 h-4" fill="currentColor" />
-                        </div>
-                        <div className="flex-1 space-y-1">
-                          <p className="text-sm font-medium leading-none">Nouveau Super Like !</p>
-                          <p className="text-xs text-muted-foreground line-clamp-1">Quelqu'un a eu un énorme coup de cœur pour vous.</p>
-                          <p className="text-[10px] text-muted-foreground">Il y a 5 min</p>
-                        </div>
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild className="p-3 m-1 rounded-xl cursor-pointer hover:bg-secondary flex items-start gap-3">
-                      <Link to="/messages">
-                        <div className="w-8 h-8 rounded-full bg-blue-500/10 text-blue-500 flex items-center justify-center shrink-0">
-                          <MessageSquare className="w-4 h-4" />
-                        </div>
-                        <div className="flex-1 space-y-1">
-                          <p className="text-sm font-medium leading-none">Nouveau message</p>
-                          <p className="text-xs text-muted-foreground line-clamp-1">Sarah : "Salut ! J'ai vu que tu aimais..."</p>
-                          <p className="text-[10px] text-muted-foreground">Il y a 1h</p>
-                        </div>
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild className="p-3 m-1 rounded-xl cursor-pointer hover:bg-secondary flex items-start gap-3">
-                      <Link to="/parametres/securite">
-                        <div className="w-8 h-8 rounded-full bg-gold/10 text-gold flex items-center justify-center shrink-0">
-                          <Settings className="w-4 h-4" />
-                        </div>
-                        <div className="flex-1 space-y-1">
-                          <p className="text-sm font-medium leading-none">Sécurisez votre compte</p>
-                          <p className="text-xs text-muted-foreground line-clamp-1">Complétez la vérification de votre profil.</p>
-                          <p className="text-[10px] text-muted-foreground">Hier</p>
-                        </div>
-                      </Link>
-                    </DropdownMenuItem>
-                  </div>
-                  <div className="p-2 border-t border-border/50">
-                    <Link to="/parametres/notifications" className="block text-center text-xs text-muted-foreground hover:text-foreground p-2 transition-colors">
-                      Paramètres de notification
-                    </Link>
-                  </div>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <MenuNotifications />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button

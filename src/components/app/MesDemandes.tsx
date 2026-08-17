@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { motion } from "motion/react";
-import { Heart, Star, Eye, Check, X, Flag, Ban, Lock, ChevronDown, ChevronUp } from "lucide-react";
+import { Heart, Star, Eye, Check, X, Flag, Ban, Lock, ChevronDown, ChevronUp, Rocket } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { getCurrentUser } from "@/lib/auth";
 import { toast } from "sonner";
@@ -9,6 +9,7 @@ import { useSubscription } from "@/lib/subscription";
 import { displayName } from "@/lib/utils";
 import { ReportDialog } from "@/components/app/ReportDialog";
 import { ApercuProfil } from "@/components/app/ApercuProfil";
+import { BoostPicker } from "@/components/app/BoostPicker";
 import {
   blockUser, dismissLike, fetchBlockedIds, fetchDismissedIds,
 } from "@/lib/moderation";
@@ -96,6 +97,7 @@ export function MesDemandes() {
   const [chargement, setChargement] = useState(true);
   const [signaler, setSignaler] = useState<{ id: string; name?: string } | null>(null);
   const [apercu, setApercu] = useState<Profil | null>(null);
+  const [boostOuvert, setBoostOuvert] = useState(false);
   const { features } = useSubscription();
 
   useEffect(() => {
@@ -298,6 +300,30 @@ export function MesDemandes() {
           ))}
         </Grille>
       </BlocAvatars>
+
+      {/* Placé JUSTE APRÈS les visiteurs, et c'est tout l'intérêt.
+          Un membre qui vient de lire « personne n'a encore regardé votre
+          profil » ressent exactement le manque que le Boost comble. La
+          même proposition ailleurs sur la page n'aurait aucune prise. */}
+      <button
+        onClick={() => setBoostOuvert(true)}
+        className="w-full flex items-center gap-3 rounded-2xl bg-gold text-gold-foreground p-4 text-left shadow-elegant hover:opacity-95 active:scale-[0.99] transition-all"
+      >
+        <span className="w-10 h-10 rounded-xl bg-black/10 grid place-items-center shrink-0">
+          <Rocket className="w-5 h-5" />
+        </span>
+        <span className="flex-1 min-w-0">
+          <span className="block text-sm font-bold">Augmente tes chances ✨</span>
+          <span className="block text-xs opacity-80 mt-0.5 leading-snug">
+            Boost ton profil pour apparaître en premier
+          </span>
+        </span>
+        <span className="text-xs font-semibold shrink-0 underline underline-offset-2">
+          Voir les offres
+        </span>
+      </button>
+
+      {boostOuvert && <BoostPicker onClose={() => setBoostOuvert(false)} />}
 
       {/* Clic sur un visage : la fiche s'ouvre. C'est là, photos et
           présentation sous les yeux, qu'on se fait une idée. */}

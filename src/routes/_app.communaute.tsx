@@ -25,6 +25,7 @@ import { useSubscription } from "@/lib/subscription";
 import { useNavigate } from "@tanstack/react-router";
 import { PlanBadge } from "@/components/app/PlanBadge";
 import { Avatar } from "@/components/app/Avatar";
+import { FicheProfil } from "@/components/app/FicheProfil";
 import { markCommunityRead } from "@/lib/badgesNav";
 
 export const Route = createFileRoute("/_app/communaute")({
@@ -390,6 +391,8 @@ function CommunityPage() {
   const [currentUserProfile, setCurrentUserProfile] = useState<any>(null);
   const [openComments, setOpenComments] = useState<Set<string>>(new Set());
   const [reportingPostId, setReportingPostId] = useState<string | null>(null);
+  /** Auteur dont la fiche est ouverte — son identifiant suffit. */
+  const [ficheId, setFicheId] = useState<string | null>(null);
 
   const { content: dailyContent, loading: dailyLoading } = useDailyContent();
 
@@ -446,6 +449,10 @@ function CommunityPage() {
         // le jeu de colonnes minimal garanti plutôt que de tout perdre.
         const COLS_FULL =
           "id, user_id, category, text, image_url, video_url, likes_count, comments_count, created_at, edited_at, " +
+          // Le strict nécessaire à l'en-tête d'une publication. La fiche
+          // complète va chercher ses vingt colonnes elle-même, au clic :
+          // les charger ici, ce serait cinquante profils complets à
+          // chaque ouverture du fil pour une seule fiche consultée.
           "profiles!community_posts_user_id_fkey(id, first_name, city, photos, is_verified, public_plan, premium_until, is_founder)";
         const COLS_MIN =
           "id, user_id, category, text, image_url, video_url, likes_count, comments_count, created_at, " +
@@ -1187,14 +1194,37 @@ function CommunityPage() {
               className="rounded-2xl bg-card border border-border/50 shadow-soft overflow-hidden">
               {/* Header */}
               <header className="flex items-center gap-3 p-3">
-                <Avatar
-                  src={p.profile?.photos?.[0]}
-                  name={p.profile?.first_name}
-                  className="w-10 h-10 text-sm"
-                />
+                {/* Avatar et prénom mènent au profil de l'auteur.
+                    Une publication qui touche donne envie de savoir qui
+                    l'a écrite — c'est le chemin le plus naturel vers une
+                    rencontre, et il n'existait pas : on lisait un beau
+                    témoignage sans aucun moyen d'aller plus loin.
+                    Le prénom autant que la photo, parce que c'est là que
+                    le doigt se pose spontanément.
+
+                    Rien pour soi-même : ouvrir sa propre fiche depuis le
+                    fil n'apprend rien, /profil est fait pour cela. */}
+                <BoutonAuteur
+                  profil={p.profile}
+                  soi={p.user_id === currentUserId}
+                  onOuvrir={setFicheId}
+                >
+                  <Avatar
+                    src={p.profile?.photos?.[0]}
+                    name={p.profile?.first_name}
+                    className="w-10 h-10 text-sm"
+                  />
+                </BoutonAuteur>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5">
-                    <span className="font-semibold text-sm truncate">{p.profile?.first_name || "Membre"}</span>
+                    <BoutonAuteur
+                      profil={p.profile}
+                      soi={p.user_id === currentUserId}
+                      onOuvrir={setFicheId}
+                      className="min-w-0"
+                    >
+                      <span className="font-semibold text-sm truncate block">{p.profile?.first_name || "Membre"}</span>
+                    </BoutonAuteur>
                     {p.profile?.is_verified && <CheckCircle2 className="w-3.5 h-3.5 text-primary shrink-0" />}
                     <PlanBadge profile={p.profile} compact />
                   </div>
@@ -1433,7 +1463,43 @@ function CommunityPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {ficheId && <FicheProfil userId={ficheId} onClose={() => setFicheId(null)} />}
     </div>
+  );
+}
+
+// ─── Auteur cliquable ─────────────────────────────────────────────────────────
+/**
+ * Enveloppe l'avatar ou le prénom d'un auteur.
+ *
+ * Rend un `<button>` quand il y a quelque chose à ouvrir, un simple
+ * `<span>` sinon — pour soi-même, ou pour une publication dont l'auteur
+ * a supprimé son compte. Un bouton qui ne fait rien est pire qu'un texte
+ * inerte : on l'essaie, et l'on conclut que l'application est cassée.
+ */
+function BoutonAuteur({
+  profil, soi, onOuvrir, className = "", children,
+}: {
+  profil: CommunityPost["profile"];
+  soi: boolean;
+  onOuvrir: (userId: string) => void;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  if (!profil?.id || soi) {
+    return <span className={`shrink-0 ${className}`}>{children}</span>;
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => onOuvrir(profil.id)}
+      aria-label={`Voir le profil de ${profil.first_name || "ce membre"}`}
+      className={`shrink-0 text-left rounded-full hover:opacity-80 active:scale-95 transition-all ${className}`}
+    >
+      {children}
+    </button>
   );
 }
 
