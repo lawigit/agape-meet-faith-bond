@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { motion, useMotionValue, useTransform, AnimatePresence } from "motion/react";
+import { motion, AnimatePresence } from "motion/react";
 import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
 import { envoyerDemande, RAISONS } from "@/lib/contacts";
@@ -510,7 +510,6 @@ function DiscoverPage() {
                 key={nextFiltered.id}
                 profile={nextFiltered}
                 active={false}
-                onSwipe={() => {}}
                 onDetail={() => setDetail(nextFiltered)}
               />
             )}
@@ -519,7 +518,6 @@ function DiscoverPage() {
                 key={currentFiltered.id}
                 profile={currentFiltered}
                 active={true}
-                onSwipe={swipe}
                 onDetail={() => setDetail(currentFiltered)}
               />
             )}
@@ -555,16 +553,22 @@ function DiscoverPage() {
           <span className="text-[10px] text-muted-foreground font-medium">Passer</span>
         </div>
 
-        {/* « Super like » et « J'adore » retirés de la barre.
+        {/* « Super like » et « J'adore » ont été retirés de la barre, et
+            le balayage de la carte l'a été à son tour.
 
-            Le LIKE reste accessible : faire glisser la carte vers la
-            droite appelle `swipe("right")`, exactement comme le bouton.
+            ⚠️ NI LE LIKE NI LE SUPER LIKE N'ONT PLUS D'ACCÈS DIRECT.
+            « Passer » écrit toujours dans `swipes`, mais plus rien ne
+            produit de like — « M'ont aimé » sur l'accueil ne recevra donc
+            plus de nouvelles entrées, et le Super Like reste un droit
+            payant (5/jour en Premium, illimité en VIP) sans commande pour
+            l'exercer. Les compteurs au-dessus des cartes continuent
+            pourtant de l'afficher.
 
-            ⚠️ LE SUPER LIKE, LUI, N'A PLUS AUCUN ACCÈS. La carte ne
-            glisse qu'horizontalement (`drag="x"`) : il n'existe pas de
-            geste vertical pour le déclencher. C'est pourtant un droit
-            payant — 5 par jour en Premium, illimités en VIP — et les
-            compteurs continuent de l'afficher au-dessus des cartes. */}
+            C'est « Ajouter » qui crée désormais le lien, et son résultat
+            est visible : une invitation, une réponse, une conversation.
+            Le like était un signal silencieux que personne ne voyait
+            partir — ce qui explique en partie que 103 membres sur 149
+            n'aient jamais balayé. */}
 
         <div className="flex flex-col items-center gap-1">
           <button
@@ -848,55 +852,50 @@ function DiscoverPage() {
   );
 }
 
+/**
+ * La carte de profil. Elle ne se fait plus glisser.
+ *
+ * CE QUI A ÉTÉ RETIRÉ, ET POURQUOI
+ *
+ * Le balayage déclenchait un LIKE à droite et un refus à gauche, annoncés
+ * par deux tampons « LIKE » et « NOPE » posés sur le visage. Trois
+ * problèmes s'étaient accumulés :
+ *
+ *   1. Le vocabulaire. « NOPE » par-dessus le visage de quelqu'un est le
+ *      ton d'un jeu, pas d'une recherche du mariage.
+ *   2. La cohérence. « J'adore » et « Super like » avaient déjà quitté la
+ *      barre d'action ; le geste désignait des actions devenues
+ *      introuvables partout ailleurs.
+ *   3. L'usage réel. Sur 149 inscrits, 103 n'avaient jamais balayé une
+ *      seule fois. Un geste que sept membres sur dix n'ont jamais
+ *      découvert n'est pas une commande : c'est un obstacle.
+ *
+ * TOUT PASSE DÉSORMAIS PAR LES BOUTONS
+ *
+ * Retour, Passer, Message, Ajouter. Ils portent une icône ET un libellé,
+ * ils sont visibles sans rien avoir à deviner, et ils ne se déclenchent
+ * pas par accident en faisant défiler la page.
+ *
+ * `onSwipe` reste dans les propriétés : la barre d'action l'appelle
+ * toujours. Seule la voie gestuelle disparaît.
+ */
 function SwipeCard({
   profile,
   active,
-  onSwipe,
   onDetail,
 }: {
   profile: Profile;
   active: boolean;
-  onSwipe: (dir: "left" | "right" | "super") => void;
   onDetail: () => void;
 }) {
-  const x = useMotionValue(0);
-  const rotate = useTransform(x, [-200, 200], [-10, 10]);
-  const opacity = useTransform(x, [-200, -150, 0, 150, 200], [0, 1, 1, 1, 0]);
-
-  const swipeLeftOpacity = useTransform(x, [-50, -150], [0, 1]);
-  const swipeRightOpacity = useTransform(x, [50, 150], [0, 1]);
-
   return (
     <motion.div
-      style={active ? { x, rotate, opacity } : {}}
-      drag={active ? "x" : false}
-      dragConstraints={{ left: 0, right: 0 }}
-      onDragEnd={(e, { offset, velocity }) => {
-        const swipeThreshold = 100;
-        if (offset.x > swipeThreshold) onSwipe("right");
-        else if (offset.x < -swipeThreshold) onSwipe("left");
-      }}
       className={`absolute inset-0 rounded-3xl overflow-hidden bg-card shadow-elegant border border-border/40 ${
-        active ? "z-20 cursor-grab active:cursor-grabbing" : "z-10 scale-[0.98] opacity-80"
+        active ? "z-20" : "z-10 scale-[0.98] opacity-80"
       }`}
     >
       <img src={profile.photo} alt={profile.firstName} className="absolute inset-0 w-full h-full object-cover" />
       <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-black/10" />
-
-      {active && (
-        <>
-          <motion.div style={{ opacity: swipeLeftOpacity }} className="absolute top-12 right-8 z-30">
-            <div className="border-4 border-destructive text-destructive font-black text-4xl px-4 py-2 rounded-xl rotate-12 bg-black/40 backdrop-blur-sm">
-              NOPE
-            </div>
-          </motion.div>
-          <motion.div style={{ opacity: swipeRightOpacity }} className="absolute top-12 left-8 z-30">
-            <div className="border-4 border-primary text-primary font-black text-4xl px-4 py-2 rounded-xl -rotate-12 bg-black/40 backdrop-blur-sm">
-              LIKE
-            </div>
-          </motion.div>
-        </>
-      )}
 
       <div className="absolute inset-x-0 bottom-0 p-6 text-white pointer-events-none">
         <div className="flex items-center gap-2 mb-2">

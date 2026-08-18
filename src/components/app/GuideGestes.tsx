@@ -12,10 +12,12 @@ import { X, MessageCircle, UserPlus, Undo2, Hand } from "lucide-react";
  * des gens désintéressés : ils ont rempli quatre étapes d'inscription et
  * envoyé leurs photos. Ils ne savaient simplement pas quoi faire ensuite.
  *
- * Le geste de balayage n'est évident que pour qui a déjà utilisé ce type
- * d'application. Rien à l'écran ne l'annonçait — et depuis que les
- * boutons « J'adore » et « Super like » ont été retirés de la barre, il
- * n'y a plus le moindre indice visible.
+ * Le geste de balayage n'était évident que pour qui avait déjà utilisé ce
+ * type d'application, et rien à l'écran ne l'annonçait. Il a fini par
+ * être supprimé : tout passe désormais par des boutons portant une icône
+ * ET un libellé. Cet écran nomme donc ce que la barre montre déjà —
+ * répéter n'est pas de trop quand sept membres sur dix n'ont jamais
+ * trouvé la commande principale.
  *
  * POURQUOI UN ÉCRAN PLEIN, ET NON UNE INFOBULLE
  *
@@ -99,11 +101,15 @@ export function GuideGestes() {
               </p>
             </div>
 
+            {/* Plus aucune mention du balayage : la carte ne se fait plus
+                glisser du tout. Enseigner un geste qui ne répond pas est
+                le plus sûr moyen de faire croire que l'application est
+                cassée — et ces membres-là ne reviennent pas demander. */}
             <div className="rounded-2xl border border-border bg-secondary/40 p-4 text-center">
               <div className="w-11 h-11 rounded-full bg-background border-2 border-muted-foreground/40 mx-auto flex items-center justify-center text-muted-foreground">
                 <X className="w-5 h-5" />
               </div>
-              <p className="text-[11px] font-semibold mt-1.5">Glissez à gauche, ou touchez Passer</p>
+              <p className="text-[11px] font-semibold mt-1.5">Touchez Passer</p>
               <p className="text-[10px] text-muted-foreground">pour voir le profil suivant</p>
             </div>
 
