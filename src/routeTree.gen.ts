@@ -43,6 +43,7 @@ import { Route as AdminParametresRouteImport } from './routes/admin.parametres'
 import { Route as AdminParrainageRouteImport } from './routes/admin.parrainage'
 import { Route as AdminSupportRouteImport } from './routes/admin.support'
 import { Route as AdminUtilisateursRouteImport } from './routes/admin.utilisateurs'
+import { Route as AdminWhatsappRouteImport } from './routes/admin.whatsapp'
 import { Route as BlogIndexRouteImport } from './routes/blog.index'
 import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
 import { Route as RencontreChretiennePaysRouteImport } from './routes/rencontre-chretienne.$pays'
@@ -220,6 +221,11 @@ const AdminUtilisateursRoute = AdminUtilisateursRouteImport.update({
   path: '/utilisateurs',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminWhatsappRoute = AdminWhatsappRouteImport.update({
+  id: '/whatsapp',
+  path: '/whatsapp',
+  getParentRoute: () => AdminRoute,
+} as any)
 const BlogIndexRoute = BlogIndexRouteImport.update({
   id: '/blog/',
   path: '/blog/',
@@ -290,6 +296,7 @@ export interface FileRoutesByFullPath {
   '/admin/parrainage': typeof AdminParrainageRoute
   '/admin/support': typeof AdminSupportRoute
   '/admin/utilisateurs': typeof AdminUtilisateursRoute
+  '/admin/whatsapp': typeof AdminWhatsappRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/rencontre-chretienne/$pays': typeof RencontreChretiennePaysRoute
   '/admin/': typeof AdminIndexRoute
@@ -331,6 +338,7 @@ export interface FileRoutesByTo {
   '/admin/parrainage': typeof AdminParrainageRoute
   '/admin/support': typeof AdminSupportRoute
   '/admin/utilisateurs': typeof AdminUtilisateursRoute
+  '/admin/whatsapp': typeof AdminWhatsappRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/rencontre-chretienne/$pays': typeof RencontreChretiennePaysRoute
   '/admin': typeof AdminIndexRoute
@@ -375,6 +383,7 @@ export interface FileRoutesById {
   '/admin/parrainage': typeof AdminParrainageRoute
   '/admin/support': typeof AdminSupportRoute
   '/admin/utilisateurs': typeof AdminUtilisateursRoute
+  '/admin/whatsapp': typeof AdminWhatsappRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/rencontre-chretienne/$pays': typeof RencontreChretiennePaysRoute
   '/admin/': typeof AdminIndexRoute
@@ -419,6 +428,7 @@ export interface FileRouteTypes {
     | '/admin/parrainage'
     | '/admin/support'
     | '/admin/utilisateurs'
+    | '/admin/whatsapp'
     | '/blog/$slug'
     | '/rencontre-chretienne/$pays'
     | '/admin/'
@@ -460,6 +470,7 @@ export interface FileRouteTypes {
     | '/admin/parrainage'
     | '/admin/support'
     | '/admin/utilisateurs'
+    | '/admin/whatsapp'
     | '/blog/$slug'
     | '/rencontre-chretienne/$pays'
     | '/admin'
@@ -503,6 +514,7 @@ export interface FileRouteTypes {
     | '/admin/parrainage'
     | '/admin/support'
     | '/admin/utilisateurs'
+    | '/admin/whatsapp'
     | '/blog/$slug'
     | '/rencontre-chretienne/$pays'
     | '/admin/'
@@ -771,6 +783,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminUtilisateursRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/whatsapp': {
+      id: '/admin/whatsapp'
+      path: '/whatsapp'
+      fullPath: '/admin/whatsapp'
+      preLoaderRoute: typeof AdminWhatsappRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/blog/': {
       id: '/blog/'
       path: '/blog'
@@ -871,6 +890,7 @@ interface AdminRouteChildren {
   AdminParrainageRoute: typeof AdminParrainageRoute
   AdminSupportRoute: typeof AdminSupportRoute
   AdminUtilisateursRoute: typeof AdminUtilisateursRoute
+  AdminWhatsappRoute: typeof AdminWhatsappRoute
   AdminIndexRoute: typeof AdminIndexRoute
 }
 
@@ -886,6 +906,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminParrainageRoute: AdminParrainageRoute,
   AdminSupportRoute: AdminSupportRoute,
   AdminUtilisateursRoute: AdminUtilisateursRoute,
+  AdminWhatsappRoute: AdminWhatsappRoute,
   AdminIndexRoute: AdminIndexRoute,
 }
 

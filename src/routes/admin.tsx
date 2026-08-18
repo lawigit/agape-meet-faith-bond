@@ -1,5 +1,5 @@
 import { createFileRoute, Outlet, Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, Users, ShieldAlert, CreditCard, Megaphone, Settings, LogOut, BarChart3, LifeBuoy, FileText, Radio, Gift } from "lucide-react";
+import { LayoutDashboard, Users, ShieldAlert, CreditCard, Megaphone, Settings, LogOut, BarChart3, LifeBuoy, FileText, Radio, Gift, MessageCircle } from "lucide-react";
 import { fetchMyPermissions, ROLE_LABELS, type MyPermissions, type Permission } from "@/lib/permissions";
 import logo from "@/assets/logo.png";
 import { supabase } from "@/lib/supabase";
@@ -43,6 +43,10 @@ const adminMenus: {
   // module autonome, avec sa propre navigation interne.
   { to: "/admin/meta-ads", label: "Meta Ads", icon: Radio, perm: "reglages" },
   { to: "/admin/marketing", label: "Marketing", icon: Megaphone, perm: "reglages" },
+  // La chaine WhatsApp est un canal a part : elle ne se pilote pas depuis
+  // Marketing, qui ne traite que ce que l application envoie elle-meme.
+  // Ici, la publication reste un geste humain.
+  { to: "/admin/whatsapp", label: "Chaîne WhatsApp", icon: MessageCircle, perm: "reglages" },
   // Sous « finances » et non « reglages » : le module engage des
   // versements réels, et la file des retraits doit rester entre les
   // mains de qui gère déjà l'argent.
