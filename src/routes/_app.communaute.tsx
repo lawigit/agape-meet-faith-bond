@@ -26,7 +26,17 @@ import { useNavigate } from "@tanstack/react-router";
 import { PlanBadge } from "@/components/app/PlanBadge";
 import { Avatar } from "@/components/app/Avatar";
 import { FicheProfil } from "@/components/app/FicheProfil";
+import { PanneauPremium } from "@/components/app/PanneauPremium";
+import { limite, limiteDepuisErreur, type ContenuLimite } from "@/lib/limites";
 import { markCommunityRead } from "@/lib/badgesNav";
+
+/** Ce que renvoie `quota_publications()` (migration 81). */
+type QuotaPublications = {
+  illimite: boolean;
+  restant: number;
+  quota?: number;
+  prochain_le?: string | null;
+};
 
 export const Route = createFileRoute("/_app/communaute")({
   head: () => ({
@@ -393,6 +403,10 @@ function CommunityPage() {
   const [reportingPostId, setReportingPostId] = useState<string | null>(null);
   /** Auteur dont la fiche est ouverte — son identifiant suffit. */
   const [ficheId, setFicheId] = useState<string | null>(null);
+  /** Droit de publier, sur 24 h glissantes. `null` tant qu'on l'ignore. */
+  const [quotaPub, setQuotaPub] = useState<QuotaPublications | null>(null);
+  /** Panneau persuasif affiché quand une limite est atteinte. */
+  const [panneau, setPanneau] = useState<ContenuLimite | null>(null);
 
   const { content: dailyContent, loading: dailyLoading } = useDailyContent();
 
@@ -437,7 +451,25 @@ function CommunityPage() {
     // en fermant l'onglet, où aucun nettoyage n'est garanti — la pastille
     // resterait alors allumée sur des publications déjà vues.
     markCommunityRead();
+    rafraichirQuota();
   }, []);
+
+  /**
+   * Combien de publications il reste, et quand la suivante sera possible.
+   *
+   * Lu au serveur et non déduit de la formule côté client : la règle est
+   * réglable dans /admin/parametres, et un compte qui vient de passer
+   * Premium doit pouvoir republier sans recharger la page.
+   *
+   * Silencieux en cas d'erreur — tant que la migration 81 n'est pas
+   * passée, la fonction n'existe pas, et l'application doit continuer de
+   * marcher exactement comme avant.
+   */
+  async function rafraichirQuota() {
+    const { data, error } = await supabase.rpc("quota_publications");
+    if (error) { console.warn("[communauté] quota indisponible :", error.message); return; }
+    setQuotaPub(data as QuotaPublications);
+  }
 
   useEffect(() => {
     async function loadPosts() {
@@ -721,6 +753,14 @@ function CommunityPage() {
     if (!composer.trim() && !composerMedia) return;
     if (!currentUserId) { toast.error("Vous devez être connecté pour publier"); return; }
 
+    // Refus AVANT le téléversement. La base refusera de toute façon, mais
+    // l'apprendre après avoir attendu l'envoi d'une photo de 5 Mo sur une
+    // connexion mobile, c'est faire payer l'effort pour répondre non.
+    if (quotaPub && !quotaPub.illimite && quotaPub.restant <= 0) {
+      setPanneau(limite("publication"));
+      return;
+    }
+
     setPublishing(true);
     try {
       let mediaUrls = { image_url: null as string | null, video_url: null as string | null };
@@ -768,10 +808,22 @@ function CommunityPage() {
       setPosts(prev => [newPost, ...prev]);
       setComposer("");
       clearMedia();
+      rafraichirQuota();
       toast.success("Publication partagée avec la communauté ✨");
     } catch (err: any) {
       console.error(err);
-      toast.error(err.message || "Erreur lors de la publication");
+
+      // Une limite de formule mérite une proposition, pas un message
+      // d'erreur rouge : c'est précisément l'instant où le besoin vient
+      // d'être ressenti. `limiteDepuisErreur` renvoie `null` pour tout le
+      // reste — une panne réseau ne doit jamais afficher un argumentaire.
+      const l = limiteDepuisErreur(err);
+      if (l) {
+        setPanneau(l);
+        rafraichirQuota();
+      } else {
+        toast.error(err.message || "Erreur lors de la publication");
+      }
     } finally {
       setPublishing(false);
       setUploadProgress(0);
@@ -1000,6 +1052,20 @@ function CommunityPage() {
           </div>
         </div>
 
+        {/* Quota atteint : on le dit ici, pendant qu'on écrit, et non à
+            l'envoi. Découvrir la limite après avoir rédigé un témoignage
+            entier, c'est perdre le témoignage et la personne avec.
+
+            Le bouton Publier reste actif : le toucher ouvre le panneau
+            complet. Un bouton grisé ne dit pas ce qu'il faudrait faire
+            pour qu'il redevienne actif. */}
+        {quotaPub && !quotaPub.illimite && quotaPub.restant <= 0 && (
+          <BandeauQuotaPublication
+            prochainLe={quotaPub.prochain_le ?? null}
+            onVoir={() => setPanneau(limite("publication"))}
+          />
+        )}
+
         {/* Bottom bar */}
         <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/40 gap-2">
           <select
@@ -1019,9 +1085,10 @@ function CommunityPage() {
               id="composer-image-btn"
               onClick={() => {
                 if (!features.communityMedia) {
-                  toast.error("Passez Premium pour publier avec des photos", {
-                    action: { label: "Voir les formules", onClick: () => navigate({ to: "/abonnement" }) },
-                  });
+                  // Le même panneau que pour le quota, et non un toast :
+                  // trois secondes ne suffisent pas à lire ce qu'on y
+                  // gagnerait, et un toast ne laisse rien à faire.
+                  setPanneau(limite("media"));
                   return;
                 }
                 imageInputRef.current?.click();
@@ -1465,6 +1532,64 @@ function CommunityPage() {
       </Dialog>
 
       {ficheId && <FicheProfil userId={ficheId} onClose={() => setFicheId(null)} />}
+
+      {panneau && (
+        <PanneauPremium
+          titre={panneau.titre}
+          texte={panneau.texte}
+          avantages={panneau.avantages}
+          onClose={() => setPanneau(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+// ─── Quota de publication atteint ─────────────────────────────────────────────
+/**
+ * Le bandeau qui remplace le silence entre deux publications.
+ *
+ * IL DIT QUAND, ET PAS SEULEMENT NON
+ *
+ * « Vous avez atteint votre limite » laisse croire à une punition sans
+ * fin. « Vous pourrez republier dans 6 h » est une information : on sait
+ * qu'on reviendra, et on n'a plus de raison d'aller se plaindre.
+ *
+ * L'heure exacte plutôt qu'un décompte à la seconde : personne ne
+ * surveille un chronomètre pendant six heures, et un compte à rebours
+ * qui tourne donne l'impression désagréable d'être mis en attente.
+ */
+function BandeauQuotaPublication({
+  prochainLe, onVoir,
+}: { prochainLe: string | null; onVoir: () => void }) {
+  const attente = (() => {
+    if (!prochainLe) return null;
+    const h = Math.ceil((new Date(prochainLe).getTime() - Date.now()) / 3_600_000);
+    if (h <= 0) return null;
+    return h === 1 ? "dans moins d'une heure" : `dans environ ${h} h`;
+  })();
+
+  return (
+    <div className="mt-2 rounded-xl border border-gold/40 bg-gold/10 p-3">
+      <div className="flex items-start gap-2.5">
+        <Crown className="w-4 h-4 text-gold shrink-0 mt-0.5" />
+        <div className="min-w-0">
+          <p className="text-xs font-semibold leading-snug">
+            Vous avez déjà partagé aujourd'hui
+          </p>
+          <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
+            La formule Gratuite donne une publication par 24 h
+            {attente ? ` — la prochaine ${attente}.` : "."}{" "}
+            Premium les libère toutes, avec vos photos.
+          </p>
+          <button
+            onClick={onVoir}
+            className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gold text-gold-foreground text-[11px] font-bold shadow-soft hover:opacity-90 transition-opacity"
+          >
+            <Crown className="w-3 h-3" /> Publier sans limite
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

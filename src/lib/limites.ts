@@ -72,6 +72,17 @@ const LIMITES: Record<string, ContenuLimite> = {
     ],
   },
 
+  publication: {
+    titre: "Vous avez publié aujourd'hui",
+    texte:
+      "Une publication par jour en formule Gratuite. Vous en avez visiblement d'autres à partager — Premium les libère toutes, et vous laisse y joindre vos photos.",
+    avantages: [
+      "Publiez autant de fois que vous le souhaitez",
+      "Ajoutez des photos à vos publications",
+      "Votre badge Premium apparaît sur chacune",
+    ],
+  },
+
   media: {
     titre: "Illustrez vos publications",
     texte:
@@ -101,6 +112,7 @@ export function limiteDepuisErreur(error: unknown): ContenuLimite | null {
   if (brut.includes("FREE_MESSAGE_QUOTA") || brut.includes("MESSAGE_QUOTA_REACHED"))
     return LIMITES.messages;
   if (brut.includes("FREE_SUPERLIKE_COOLDOWN")) return LIMITES.superlike;
+  if (brut.includes("FREE_POST_QUOTA")) return LIMITES.publication;
   if (brut.includes("FREE_NO_MEDIA_POST")) return LIMITES.media;
 
   return null;
