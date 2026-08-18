@@ -668,9 +668,14 @@ function ProfileDetailModal({ profile, onClose }: { profile: Profile; onClose: (
             />
           </div>
 
-          {/* CTA */}
+          {/* CTA — le profil ouvert est passé en paramètre.
+              On a cliqué sur CETTE personne : la retrouver en premier
+              sur /decouvrir est tout ce qu'on attendait du bouton.
+              Sans `search`, on atterrissait sur un inconnu, et le lien
+              n'avait plus de rapport avec ce qu'on venait de regarder. */}
           <Link
             to="/decouvrir"
+            search={{ p: profile.id }}
             className="flex items-center justify-center gap-2 w-full py-3.5 rounded-full bg-gradient-to-r from-primary to-primary/80 text-primary-foreground font-semibold shadow-elegant hover:opacity-90 transition-opacity"
           >
             <BookOpen className="w-4 h-4" />

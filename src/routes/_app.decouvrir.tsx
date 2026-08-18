@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { motion, AnimatePresence } from "motion/react";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { envoyerDemande, RAISONS } from "@/lib/contacts";
 import { LimiteDemandes } from "@/components/app/LimiteDemandes";
@@ -53,15 +53,39 @@ export const Route = createFileRoute("/_app/decouvrir")({
       { name: "robots", content: "noindex" },
     ],
   }),
+  /**
+   * `p` — le profil à présenter en premier.
+   *
+   * Les rangées de l'accueil y mènent après qu'on a ouvert la fiche de
+   * QUELQU'UN. Arriver sur un inconnu à la place est incompréhensible :
+   * on n'a pas cliqué sur « Découvrir », on a cliqué sur cette personne.
+   *
+   * Le type de retour est annoté et tous ses champs sont facultatifs :
+   * sans cela, chaque `<Link to="/decouvrir">` déjà écrit ailleurs
+   * deviendrait invalide faute de paramètre.
+   */
+  validateSearch: (s: Record<string, unknown>): { p?: string } => ({
+    p: typeof s.p === "string" && s.p ? s.p : undefined,
+  }),
   component: DiscoverPage,
 });
 
 function DiscoverPage() {
+  /**
+   * Profil à placer en tête, s'il en a été demandé un.
+   *
+   * Recopié dans un état plutôt que lu directement à chaque rendu : il
+   * doit pouvoir être relâché quand il n'a plus de sens (profil absent
+   * du jeu, changement de filtres) sans réécrire l'URL sous les pieds de
+   * quelqu'un qui parcourt déjà les cartes.
+   */
+  const { p: profilDemande } = Route.useSearch();
+  const [epingle, setEpingle] = useState<string | null>(profilDemande ?? null);
+
   const [deck, setDeck] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [index, setIndex] = useState(0);
   const [history, setHistory] = useState<{ id: string; action: string }[]>([]);
-  const [detail, setDetail] = useState<Profile | null>(null);
   
   // Filtres
   const [showFilters, setShowFilters] = useState(false);
@@ -196,9 +220,47 @@ function DiscoverPage() {
   // Le deck arrive déjà filtré par la base. Il ne reste qu'à reclasser
   // localement à l'expiration d'un Boost, sans repasser par le réseau.
   const filteredDeck = useMemo(
-    () => rankProfiles(deck, boostTick),
-    [deck, boostTick],
+    () => {
+      const classe = rankProfiles(deck, boostTick);
+      if (!epingle) return classe;
+
+      const i = classe.findIndex(p => p.id === epingle);
+      // Déjà en tête, ou introuvable : rien à déplacer.
+      if (i <= 0) return classe;
+
+      // Remis en tête sans être retiré du jeu : les autres gardent leur
+      // ordre relatif, et personne ne disparaît du parcours.
+      return [classe[i], ...classe.slice(0, i), ...classe.slice(i + 1)];
+    },
+    [deck, boostTick, epingle],
   );
+
+  /**
+   * Le profil demandé peut ne pas être là : déjà passé, hors des filtres,
+   * masqué depuis. Le dire vaut mieux que de présenter un inconnu sans
+   * un mot — c'est précisément le reproche qui a mené à ce paramètre.
+   */
+  useEffect(() => {
+    if (!epingle || loading || deck.length === 0) return;
+    if (!deck.some(p => p.id === epingle)) {
+      toast.info("Ce profil n'est plus dans vos découvertes.");
+      setEpingle(null);
+    }
+  }, [epingle, loading, deck]);
+
+  /**
+   * Un changement de filtres relâche l'épingle.
+   *
+   * Sans cela, le jeu se recharge, l'index revient à zéro, et l'on
+   * retombe sur le même profil — y compris après l'avoir passé. Le `ref`
+   * évite que l'effet ne se déclenche au premier rendu, ce qui
+   * supprimerait l'épingle avant même qu'elle ait servi.
+   */
+  const premiersFiltres = useRef(true);
+  useEffect(() => {
+    if (premiersFiltres.current) { premiersFiltres.current = false; return; }
+    setEpingle(null);
+  }, [filters]);
 
   const currentFiltered = filteredDeck[index];
   const nextFiltered = filteredDeck[index + 1];
@@ -510,7 +572,6 @@ function DiscoverPage() {
                 key={nextFiltered.id}
                 profile={nextFiltered}
                 active={false}
-                onDetail={() => setDetail(nextFiltered)}
               />
             )}
             {currentFiltered && (
@@ -518,7 +579,6 @@ function DiscoverPage() {
                 key={currentFiltered.id}
                 profile={currentFiltered}
                 active={true}
-                onDetail={() => setDetail(currentFiltered)}
               />
             )}
           </AnimatePresence>
@@ -738,15 +798,15 @@ function DiscoverPage() {
             />
           </div>
 
-          {/* View full profile */}
-          <div className="px-5 pb-5 pt-3">
-            <button
-              onClick={() => setDetail(currentFiltered)}
-              className="w-full py-2.5 rounded-full border border-primary/30 text-primary text-sm font-semibold hover:bg-primary/5 transition-colors"
-            >
-              Voir le profil complet
-            </button>
-          </div>
+          {/* Le bouton « Voir le profil complet » était ici. Il ouvrait
+              une fiche qui répétait ce que ce panneau affiche déjà :
+              photos, à propos, foi, et les mêmes trois blocs complémen-
+              taires, rendus par le même composant. Un bouton qui remontre
+              ce qu'on vient de lire fait douter d'avoir tout vu.
+
+              La fiche reste ouverte par les autres accès — les rangées de
+              l'accueil, l'en-tête d'une publication dans la communauté —
+              là où le détail n'est pas déjà sous les yeux. */}
         </motion.div>
       )}
 
@@ -800,7 +860,6 @@ function DiscoverPage() {
       </AnimatePresence>
 
       <AnimatePresence>
-        {detail && <ProfileDetailModal profile={detail} onClose={() => setDetail(null)} />}
       </AnimatePresence>
 
       {/* Guide des gestes : une fois, a la premiere visite. Sans lui,
@@ -882,11 +941,9 @@ function DiscoverPage() {
 function SwipeCard({
   profile,
   active,
-  onDetail,
 }: {
   profile: Profile;
   active: boolean;
-  onDetail: () => void;
 }) {
   return (
     <motion.div
@@ -934,66 +991,12 @@ function SwipeCard({
   );
 }
 
-function ProfileDetailModal({ profile, onClose }: { profile: Profile; onClose: () => void }) {
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 bg-background/95 backdrop-blur-sm overflow-y-auto"
-    >
-      <div className="min-h-full max-w-md mx-auto bg-background relative pb-24 shadow-2xl">
-        <div className="relative aspect-[3/4] md:aspect-[4/5]">
-          <img src={profile.photo} alt={profile.firstName} className="w-full h-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
-          <button
-            onClick={onClose}
-            className="absolute top-4 right-4 w-10 h-10 rounded-full bg-black/40 backdrop-blur flex items-center justify-center text-white"
-          >
-            <X className="w-5 h-5" />
-          </button>
-          
-          <div className="absolute bottom-0 inset-x-0 p-6 pb-2">
-            <h2 className="font-serif text-4xl font-bold flex items-center gap-2">
-              <span className="truncate min-w-0">
-                {displayName(profile.firstName, profile.lastName)}, {profile.age}
-              </span>
-              {profile.verified && <CheckCircle2 className="w-6 h-6 text-blue-500 shrink-0" />}
-            </h2>
-            <div className="flex items-center gap-2 text-muted-foreground mt-1 text-sm font-medium">
-              <span>{profile.city}</span>
-              <span>•</span>
-              <span className="text-primary">{profile.compatibility}% Compatible</span>
-            </div>
-          </div>
-        </div>
 
-        <div className="p-6 space-y-8">
-          <section>
-            <h3 className="font-serif text-lg font-semibold mb-3 flex items-center gap-2">
-              <Church className="w-5 h-5 text-primary" /> Foi & Vision
-            </h3>
-            <div className="space-y-3 bg-secondary/30 p-4 rounded-2xl border border-border/50">
-              <div><span className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Dénomination</span><p className="font-medium">{profile.denomination}</p></div>
-              <div><span className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Vision du mariage</span><p className="font-medium text-sm leading-relaxed">{profile.marriageVision}</p></div>
-            </div>
-          </section>
-          <section>
-            <h3 className="font-serif text-lg font-semibold mb-2">À propos</h3>
-            <p className="text-sm leading-relaxed text-muted-foreground">{profile.bio}</p>
-          </section>
-          {profile.photos.length > 1 && (
-            <section>
-              <h3 className="font-serif text-lg font-semibold mb-3">Photos</h3>
-              <div className="grid grid-cols-2 gap-3">
-                {profile.photos.slice(1).map((photo, i) => (
-                  <img key={i} src={photo} alt="" className="w-full aspect-[3/4] object-cover rounded-2xl shadow-sm" />
-                ))}
-              </div>
-            </section>
-          )}
-        </div>
-      </div>
-    </motion.div>
-  );
-}
+// Le composant `ProfileDetailModal` vivait ici. Il n avait plus qu un
+// seul declencheur — le bouton « Voir le profil complet », retire de
+// cette page — et devenait donc inatteignable. La prop `onDetail` de
+// la carte n avait jamais ete appelee : aucun autre chemin n y menait.
+//
+// Le detail complet reste accessible par <FicheProfil>, ouvert depuis
+// les rangees de l accueil et l en-tete des publications. Cette
+// version-ci en etait une copie divergente, plus pauvre.
