@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import {
   Settings, Shield, Wrench, Save, AlertTriangle, Rocket, Mail, Loader2,
   MessageSquare, Phone, Users2, Info, RotateCcw, LifeBuoy, Users, ExternalLink,
+  UserPlus,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
@@ -59,6 +60,18 @@ const QUOTA_ROWS: { prefix: string; label: string; hint: string; icon: any }[] =
     prefix: "superlike_cooldown_l",
     label: "Délai entre Super Likes",
     hint: "En jours. Mettre 0 pour appliquer le quota journalier à la place.",
+    icon: Users2,
+  },
+  {
+    prefix: "quota_demandes_l",
+    label: "Demandes de contact par jour",
+    hint: "Sur 24 h glissantes. Une demande annulée reste comptée : sans cela, on enverrait et annulerait indéfiniment. Migration 82.",
+    icon: UserPlus,
+  },
+  {
+    prefix: "quota_posts_l",
+    label: "Publications par jour",
+    hint: "Communauté, sur 24 h glissantes. Une publication supprimée libère le droit. Migration 81.",
     icon: Users2,
   },
   {
