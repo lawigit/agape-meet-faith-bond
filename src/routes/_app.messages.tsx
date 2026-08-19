@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { GuideEcran } from "@/components/app/GuideEcran";
 import { lazy, Suspense, useEffect, useMemo, useState, useRef } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "motion/react";
 import { supabase } from "@/lib/supabase";
 import { compresserImage } from "@/lib/image";
@@ -11,6 +12,7 @@ import {
   Image as ImageIcon, Video as VideoIcon, Phone, Sticker,
   Check, CheckCheck, MoreVertical, Archive, Flag, Ban,
   X, GalleryHorizontal, Loader2, Play, Pause, BadgeCheck, Lock, Trash2,
+  Shield,
 } from "lucide-react";
 import { toast } from "sonner";
 import { normaliser } from "@/content/pays";
@@ -877,6 +879,16 @@ function ConversationSkeleton() {
 // ─────────────────────────────────────────────────
 // Chat View
 // ─────────────────────────────────────────────────
+/** Ce que renvoie `etat_coordonnees()` — migration 86. */
+type EtatContact = {
+  debloque: boolean;
+  total: number;
+  seuil: number;
+  moi: number;
+  autre: number;
+  chacun: number;
+};
+
 function ChatView({
   chat,
   currentUserId,
@@ -908,6 +920,10 @@ function ChatView({
   const [reportOpen, setReportOpen] = useState(false);
   const [startingCall, setStartingCall] = useState(false);
   const [arretPremium, setArretPremium] = useState<ContenuLimite | null>(null);
+  /** Avancement vers le déblocage des coordonnées (migration 86). */
+  const [etatContact, setEtatContact] = useState<EtatContact | null>(null);
+  /** Motif du dernier refus : ouvre le panneau d'explication. */
+  const [blocageContact, setBlocageContact] = useState<string | null>(null);
   const { features } = useSubscription();
   const navigate = useNavigate();
 
@@ -974,6 +990,16 @@ function ChatView({
   const [quotas, setQuotas] = useState<Quotas | null>(null);
   const loadQuotas = () => fetchQuotas().then(setQuotas);
   useEffect(() => { loadQuotas(); }, []);
+
+  // Silencieux si la migration 86 n'est pas passée : le compteur reste
+  // simplement absent, et l'envoi fonctionne comme avant.
+  const chargerEtatContact = async () => {
+    const { data, error } = await supabase.rpc("etat_coordonnees", { p_match: chat.id });
+    if (error) return;
+    const e = data as any;
+    if (e && !e.error) setEtatContact(e as EtatContact);
+  };
+  useEffect(() => { chargerEtatContact(); }, [chat.id]);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const audioChunks = useRef<Blob[]>([]);
@@ -1100,17 +1126,42 @@ function ChatView({
   };
 
   const sendMessage = async (opts: { content?: string; media_url?: string; media_type?: Msg["media_type"] }) => {
-    const { error } = await supabase.from("messages").insert({
-      match_id: chat.id,
-      sender_id: currentUserId,
-      content: opts.content || "",
-      media_url: opts.media_url || null,
-      media_type: opts.media_type || null,
+    // L'insertion directe dans `messages` est révoquée depuis la
+    // migration 86 : la clé anon est publique, et une règle appliquée
+    // dans le navigateur se contourne par un simple appel HTTP. Tout
+    // passe désormais par cette fonction, qui vérifie l'appartenance à
+    // la conversation, le blocage, et le délai avant coordonnées.
+    const { data, error } = await supabase.rpc("envoyer_message", {
+      p_match: chat.id,
+      p_contenu: opts.content || "",
+      p_media_url: opts.media_url || null,
+      p_media_type: opts.media_type || null,
     });
 
-    if (!error) {
+    const r = data as any;
+
+    if (!error && r?.ok) {
       onQuotaChange?.();
       loadQuotas();
+      chargerEtatContact();
+      return false;
+    }
+
+    // Coordonnées trop tôt : ce n'est pas une panne, c'est une règle.
+    // Elle mérite une explication, pas une notification rouge de trois
+    // secondes — c'est en comprenant POURQUOI qu'on cesse d'essayer.
+    if (!error && r?.raison === "coordonnees_trop_tot") {
+      if (r.etat) setEtatContact(r.etat);
+      setBlocageContact(r.motif ?? "numero");
+      return false;
+    }
+
+    if (!error && r && !r.ok) {
+      toast.error(
+        r.raison === "bloque"
+          ? "Cette personne ne peut plus être contactée."
+          : "Envoi impossible.",
+      );
       return false;
     }
 
@@ -1422,6 +1473,7 @@ function ChatView({
                 de fiche plutôt que de discussion. */}
             <span className="truncate">{chat.profile.firstName}</span>
             {chat.profile.verified && <BadgeCheck className="w-4 h-4 text-primary shrink-0" aria-label="Profil certifié" />}
+            <PastilleContact etat={etatContact} onInfo={() => setBlocageContact("info")} />
           </div>
           <div className="text-[11px] text-muted-foreground truncate">
             {chat.typing ? (
@@ -1741,6 +1793,14 @@ function ChatView({
 
       {/* Quota de messages atteint : un panneau, au moment précis où le
           membre est le plus engagé — il vient d'écrire cinq fois. */}
+      {blocageContact && (
+        <PanneauCoordonnees
+          motif={blocageContact}
+          etat={etatContact}
+          onClose={() => setBlocageContact(null)}
+        />
+      )}
+
       {arretPremium && (
         <PanneauPremium
           titre={arretPremium.titre}
@@ -1758,5 +1818,123 @@ function ChatView({
         context="message"
       />
     </div>
+  );
+}
+
+
+/**
+ * Le refus d'échanger des coordonnées trop tôt.
+ *
+ * POURQUOI UN PANNEAU ET NON UNE NOTIFICATION
+ *
+ * Une règle qu'on ne comprend pas se contourne ; une règle dont on voit
+ * l'intérêt se respecte. Trois secondes de notification rouge n'ont
+ * jamais expliqué à personne pourquoi un escroc veut sortir de
+ * l'application au plus vite.
+ *
+ * On dit donc la raison AVANT la règle, et l'on montre ce qu'il reste à
+ * parcourir plutôt qu'un simple refus.
+ */
+function PanneauCoordonnees({
+  motif, etat, onClose,
+}: { motif: string; etat: EtatContact | null; onClose: () => void }) {
+  const restant = etat ? Math.max(etat.seuil - etat.total, 0) : null;
+
+  const quoi = motif === "autre_canal"
+    ? "Les liens vers WhatsApp, Telegram ou les réseaux sociaux"
+    : "Les numéros de téléphone";
+
+  return createPortal(
+    <div className="fixed inset-0 z-[90] bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-4"
+         onClick={onClose}>
+      <div className="w-full max-w-sm rounded-3xl bg-background border border-border shadow-elegant overflow-hidden"
+           onClick={e => e.stopPropagation()}>
+        <div className="px-5 pt-5 pb-4 bg-gradient-to-br from-primary to-primary/85 text-primary-foreground">
+          <div className="w-11 h-11 rounded-full bg-white/20 flex items-center justify-center">
+            <Shield className="w-5 h-5" />
+          </div>
+          <h2 className="font-serif text-xl font-semibold mt-3">
+            Pas encore, pour votre sécurité
+          </h2>
+          <p className="text-sm opacity-90 mt-1.5 leading-relaxed">
+            {quoi} s'échangent après {etat?.seuil ?? 30} messages.
+          </p>
+        </div>
+
+        <div className="p-5 space-y-4">
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            Un faux profil cherche à quitter l'application le plus vite
+            possible — dehors, plus personne ne le surveille et le
+            signalement ne sert plus à rien. Prendre le temps d'échanger
+            ici, c'est ce qui vous protège.
+          </p>
+
+          {etat && (
+            <div className="rounded-2xl border border-border bg-secondary/40 p-4">
+              <div className="flex items-baseline justify-between text-sm">
+                <span className="font-semibold">{etat.total} / {etat.seuil} messages</span>
+                {restant !== null && restant > 0 && (
+                  <span className="text-xs text-muted-foreground">
+                    encore {restant}
+                  </span>
+                )}
+              </div>
+              <div className="mt-2 h-1.5 rounded-full bg-border overflow-hidden">
+                <div className="h-full bg-primary transition-all"
+                     style={{ width: `${Math.min(100, (etat.total / etat.seuil) * 100)}%` }} />
+              </div>
+              {/* Le détail par personne n'est montré QUE s'il bloque :
+                  sinon il transforme une barre lisible en tableau. */}
+              {(etat.moi < etat.chacun || etat.autre < etat.chacun) && (
+                <p className="text-[11px] text-muted-foreground mt-2 leading-relaxed">
+                  Il faut au moins {etat.chacun} messages de chaque côté —
+                  vous en avez écrit {etat.moi}, votre correspondant {etat.autre}.
+                </p>
+              )}
+            </div>
+          )}
+
+          <button
+            onClick={onClose}
+            className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-semibold"
+          >
+            J'ai compris
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
+
+/**
+ * La pastille d'avancement, dans l'en-tête de la conversation.
+ *
+ * Elle répond à la question avant qu'on la pose. Sans elle, on découvre
+ * la règle en se faisant refuser un message — c'est-à-dire au pire
+ * moment, quand on a déjà écrit et qu'on se sent puni.
+ *
+ * Elle disparaît une fois le seuil franchi : un compteur qui reste à
+ * 30/30 pour toujours n'apprend plus rien et encombre le nom.
+ */
+function PastilleContact({
+  etat, onInfo,
+}: { etat: EtatContact | null; onInfo: () => void }) {
+  // `null` = migration non passée, ou état pas encore chargé. On
+  // n'affiche rien plutôt qu'un « 0 / 30 » qui serait faux.
+  if (!etat || etat.debloque) return null;
+
+  return (
+    <button
+      onClick={onInfo}
+      aria-label={`${etat.total} messages sur ${etat.seuil} avant l'échange des coordonnées`}
+      className="shrink-0 inline-flex items-center gap-1 pl-1.5 pr-2 py-0.5 rounded-full
+                 bg-secondary border border-border text-[10px] font-semibold
+                 text-muted-foreground hover:text-foreground transition-colors"
+    >
+      <Shield className="w-3 h-3" />
+      <span className="tabular-nums">{etat.total}/{etat.seuil}</span>
+    </button>
   );
 }
