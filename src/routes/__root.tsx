@@ -27,7 +27,7 @@ function NotFoundComponent() {
             to="/"
             className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
           >
-            Go home
+            Retour à l'accueil
           </Link>
         </div>
       </div>
@@ -46,10 +46,10 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
         <h1 className="text-xl font-semibold tracking-tight text-foreground">
-          This page didn't load
+          Cette page n'a pas pu s'afficher
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Something went wrong on our end. You can try refreshing or head back home.
+          Le problème vient de chez nous, pas de vous. Réessayez dans un instant.
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
@@ -59,7 +59,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
             }}
             className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
           >
-            Try again
+            Réessayer
           </button>
           <a
             href="/"
@@ -152,7 +152,19 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    /* `lang="fr"` — et ce n'est pas un détail de référencement.
+     *
+     * Avec `lang="en"` sur un site entièrement français, Chrome propose
+     * ou applique sa traduction automatique à tout lecteur francophone.
+     * Or Google Translate RÉÉCRIT le DOM : React ne reconnaît plus
+     * l'arbre qu'il vient d'hydrater, et la page s'effondre en cascade
+     * de « insertBefore ... is not a child of this node », jusqu'au
+     * filet d'erreur global.
+     *
+     * C'était la cause du « Cette page n'a pas pu être chargée » que
+     * voyaient les membres : presque tous sont francophones sous
+     * Chrome, donc presque tous déclenchaient la traduction. */
+    <html lang="fr">
       <head>
         <HeadContent />
       </head>
