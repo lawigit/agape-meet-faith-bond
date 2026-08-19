@@ -232,7 +232,19 @@ export function InstallSection() {
   // incapable de le savoir : l'application installée et l'onglet ont des
   // espaces de stockage distincts.
   //
-  // Ce qui s'adapte, c'est le BOUTON, jamais le texte.
+  // LE LIBELLÉ DU BOUTON NE CHANGE PAS NON PLUS.
+  //
+  // Il a un temps affiché « Comment installer ? » quand le navigateur
+  // n'exposait pas d'API d'installation. L'intention était de ne rien
+  // promettre qu'un clic ne tienne — mais le paragraphe juste au-dessus
+  // annonce « Installez l'application en un geste », et une question
+  // posée en dessous laissait croire que l'application ignorait comment
+  // s'installer elle-même.
+  //
+  // Le clic mène à l'installation dans les deux cas : directement ici,
+  // par trois étapes là. C'est le CHEMIN qui diffère, pas la promesse.
+  //
+  // Seul le comportement s'adapte.
   const installationDirecte = possible && !ios;
 
   return (
@@ -271,7 +283,7 @@ export function InstallSection() {
               aria-expanded={etapes}
               className="mt-6 inline-flex items-center gap-2 px-7 py-3 rounded-full bg-gradient-to-br from-primary to-primary/80 text-primary-foreground font-semibold shadow-elegant hover:brightness-110 active:scale-[0.98] transition"
             >
-              <Smartphone className="w-4 h-4" /> Comment installer ?
+              <Download className="w-4 h-4" /> Installer l'application
             </button>
 
             {etapes && (
