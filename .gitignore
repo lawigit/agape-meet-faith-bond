@@ -31,8 +31,16 @@ dist-ssr
 *.sln
 *.sw?
 
-# Secrets locaux. Le fichier reste sur le disque, git cesse de le suivre.
-# Une cle service_role commitee donne un acces total a la base, sans RLS.
-.env
+# .env EST VERSIONNÉ, volontairement : la construction du site se fait
+# depuis le dépôt, et c'est de là qu'elle tire les variables. L'en
+# retirer casse le déploiement — c'est arrivé.
+#
+# Ce n'est pas une fuite : les quatre variables VITE_* sont PUBLIQUES
+# par construction, compilées dans le JavaScript que tout visiteur
+# télécharge. La clé anon de Supabase est faite pour être exposée ;
+# c'est RLS qui protège les données, pas son secret.
+#
+# EN REVANCHE, jamais de clé service_role ici : elle contourne RLS et
+# donne un accès total. Elle va dans .env.local, ignoré ci-dessous.
 .env.local
 .env*.local
