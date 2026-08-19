@@ -54,10 +54,19 @@ type Ligne = {
   publie_le: string | null;
 };
 
+/**
+ * Libellés des angles. Le repli affiche la clé brute plutôt que rien :
+ * un angle ajouté en base et oublié ici se lira « sagesse » au lieu de
+ * « Sagesse » — moche, mais jamais vide.
+ */
 const ANGLES: Record<string, string> = {
+  // Matin
   verset: "Verset", priere: "Prière", promesse: "Promesse",
+  sagesse: "Sagesse", gratitude: "Gratitude",
+  // Soir
   attente: "Attente", caractere: "Caractère", temoignage: "Témoignage",
   question: "Question", agape: "AgapeMeet",
+  discernement: "Discernement", famille: "Famille",
 };
 
 function heure(iso: string) {
@@ -77,6 +86,9 @@ function jour(iso: string) {
 function AdminWhatsapp() {
   const [lignes, setLignes] = useState<Ligne[]>([]);
   const [banque, setBanque] = useState<Record<string, number>>({});
+  /** Jours de publications encore jamais parues, et seuil d'alerte. */
+  const [joursInedits, setJoursInedits] = useState<number | null>(null);
+  const [seuilAlerte, setSeuilAlerte] = useState(5);
   const [chargement, setChargement] = useState(true);
   const [erreur, setErreur] = useState<string | null>(null);
   const [copie, setCopie] = useState<number | null>(null);
@@ -94,6 +106,11 @@ function AdminWhatsapp() {
 
     setLignes((d?.planning ?? []) as Ligne[]);
     setBanque((d?.banque ?? {}) as Record<string, number>);
+    // `?? null` et non `?? 0` : tant que la migration 85 n'est pas
+    // passée, le champ est absent — et afficher « 0 jour » annoncerait
+    // une pénurie qui n'existe pas.
+    setJoursInedits(d?.jours_inedits ?? null);
+    setSeuilAlerte(d?.seuil_alerte ?? 5);
     setErreur(null);
     setChargement(false);
   };
@@ -250,14 +267,60 @@ function AdminWhatsapp() {
       )}
 
       {/* L'indicateur qui annonce l'essoufflement AVANT qu'il ne se voie
-          dans les publications : quand la banque est trop courte, les
-          messages se répètent et les abonnés se désabonnent. */}
-      <p className="text-[11px] text-muted-foreground border-t border-border/50 pt-4">
-        Banque de messages : {banque.matin ?? 0} pour le matin, {banque.soir ?? 0} pour le soir.
-        {(banque.matin ?? 0) < 10 || (banque.soir ?? 0) < 10
-          ? " ⚠️ En dessous de dix, les messages reviennent trop souvent."
-          : ""}
+          dans les publications.
+
+          Ce qui compte n'est pas le stock total mais le nombre de
+          messages JAMAIS publiés : le jour où il tombe à zéro, la chaîne
+          recommence à se répéter — et c'est ce jour-là qu'on perd des
+          abonnés, pas le jour où le stock baisse. */}
+      <ReserveInedite jours={joursInedits} seuil={seuilAlerte} />
+
+      <p className="text-[11px] text-muted-foreground">
+        Réserve totale : {banque.matin ?? 0} messages du matin, {banque.soir ?? 0} du soir.
       </p>
+    </div>
+  );
+}
+
+/**
+ * L'état de la réserve, en jours de publications inédites.
+ *
+ * « 77 messages en banque » ne dit rien d'actionnable. « Il reste 12
+ * jours » se lit d'un coup d'œil et indique quand agir — c'est le même
+ * chiffre que celui de la notification, calculé par la même fonction SQL
+ * pour qu'ils ne puissent jamais se contredire.
+ */
+function ReserveInedite({ jours, seuil }: { jours: number | null; seuil: number }) {
+  if (jours === null) return null;
+
+  const alerte = jours <= seuil;
+  const vide = jours <= 0;
+
+  return (
+    <div className={`rounded-2xl border p-4 ${
+      vide ? "border-destructive/40 bg-destructive/5"
+           : alerte ? "border-gold/40 bg-gold/10"
+                    : "border-border bg-secondary/40"
+    }`}>
+      <div className="flex items-start gap-3">
+        {alerte
+          ? <AlertTriangle className={`w-4 h-4 shrink-0 mt-0.5 ${vide ? "text-destructive" : "text-gold"}`} />
+          : <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />}
+        <div className="min-w-0">
+          <p className="text-sm font-semibold">
+            {vide
+              ? "La réserve est vide"
+              : `${jours} jour${jours > 1 ? "s" : ""} de messages inédits`}
+          </p>
+          <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+            {vide
+              ? "La chaîne republie d'anciens messages. Demandez-en 77 nouveaux."
+              : alerte
+                ? "Vous recevrez un rappel sur votre téléphone une fois par semaine jusqu'à ce que la réserve soit refaite."
+                : `Une notification partira sur votre téléphone quand il en restera ${seuil}.`}
+          </p>
+        </div>
+      </div>
     </div>
   );
 }

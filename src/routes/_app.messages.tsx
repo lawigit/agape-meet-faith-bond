@@ -3,6 +3,7 @@ import { GuideEcran } from "@/components/app/GuideEcran";
 import { lazy, Suspense, useEffect, useMemo, useState, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { supabase } from "@/lib/supabase";
+import { compresserImage } from "@/lib/image";
 import { useCurrentUserId } from "@/lib/auth";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -1060,7 +1061,16 @@ function ChatView({
 
   // ── Helpers ──
   const uploadMedia = async (file: File, folder: string): Promise<string | null> => {
-    const ext = file.name.split(".").pop();
+    // Les images sont compressées avant l'envoi ; le reste — vocaux,
+    // vidéos, documents — part tel quel. `compresserImage` rend le
+    // fichier inchangé pour tout ce qui n'est pas une image, donc le
+    // test porte sur le type et non sur le dossier.
+    const media = file.type.startsWith("image/") ? await compresserImage(file) : file;
+
+    // L'extension suit le type RÉELLEMENT produit, pas le type d'entrée :
+    // `compresserImage` rend les GIF et les SVG inchangés, et les nommer
+    // .jpg donnerait un fichier dont le nom ment sur le contenu.
+    const ext = media.type === "image/jpeg" ? "jpg" : file.name.split(".").pop();
     const path = `${folder}/${currentUserId}/${Date.now()}.${ext}`;
 
     // `contentType` explicite : sans lui, Supabase déduit le type de
@@ -1068,7 +1078,7 @@ function ChatView({
     // `application/octet-stream`, que le lecteur <audio> refuse de lire.
     const { error } = await supabase.storage
       .from("chat-media")
-      .upload(path, file, { contentType: file.type || undefined });
+      .upload(path, media, { contentType: media.type || undefined });
 
     if (error) {
       // « Erreur upload » n'apprenait rien — ni au membre, ni à nous.

@@ -29,6 +29,7 @@ import { FicheProfil } from "@/components/app/FicheProfil";
 import { PanneauPremium } from "@/components/app/PanneauPremium";
 import { limite, limiteDepuisErreur, type ContenuLimite } from "@/lib/limites";
 import { markCommunityRead } from "@/lib/badgesNav";
+import { compresserImage } from "@/lib/image";
 
 /** Ce que renvoie `quota_publications()` (migration 81). */
 type QuotaPublications = {
@@ -648,17 +649,39 @@ function CommunityPage() {
     setUploadingMedia(true);
     setUploadProgress(10);
 
-    const ext = composerMedia.name.split(".").pop() || (composerMediaType === "image" ? "jpg" : "mp4");
+    // Les images du fil sont compressées avant l'envoi, comme les photos
+    // de profil. C'est ici que l'enjeu est le plus fort : une photo de
+    // profil est vue par ceux qui ouvrent la fiche, une publication est
+    // vue par TOUS ceux qui font défiler le fil. Une image de 5 Mo
+    // consultée par cent membres, ce sont 500 Mo de bande passante pour
+    // une seule publication.
+    //
+    // Les vidéos passent telles quelles : les recompresser dans le
+    // navigateur demanderait un encodeur, et leur poids est déjà borné
+    // à 25 Mo à la sélection.
+    const media = composerMediaType === "image"
+      ? await compresserImage(composerMedia)
+      : composerMedia;
+
+    // L'extension suit le type RÉELLEMENT produit : un GIF ressort
+    // inchangé du compresseur, et le nommer .jpg donnerait un fichier
+    // dont le nom ment sur le contenu.
+    const ext = media.type === "image/jpeg"
+      ? "jpg"
+      : (composerMedia.name.split(".").pop() || (composerMediaType === "image" ? "jpg" : "mp4"));
     const path = `${currentUserId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
 
     try {
       setUploadProgress(30);
       const { error } = await supabase.storage
         .from("community-media")
-        .upload(path, composerMedia, {
-          cacheControl: "3600",
+        .upload(path, media, {
+          // Un an plutôt qu'une heure : le chemin porte un horodatage et
+          // un aléa, donc une image ne change jamais après coup. La faire
+          // réexpirer toutes les heures la fait retélécharger pour rien.
+          cacheControl: "31536000",
           upsert: false,
-          contentType: composerMedia.type,
+          contentType: media.type,
         });
 
       if (error) throw error;

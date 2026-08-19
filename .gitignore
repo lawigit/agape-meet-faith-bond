@@ -30,3 +30,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Secrets locaux. Le fichier reste sur le disque, git cesse de le suivre.
+# Une cle service_role commitee donne un acces total a la base, sans RLS.
+.env
+.env.local
+.env*.local
