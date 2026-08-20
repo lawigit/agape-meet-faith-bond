@@ -59,6 +59,8 @@ const LARGEUR_MAX = 1600;
 const QUALITE = 88;
 /** En dessous, le gain ne vaut pas la perte de génération. */
 const SEUIL_OCTETS = 400_000;
+/** Un an. Le chemin porte un horodatage : le contenu ne change jamais. */
+const CACHE_SECONDES = 31_536_000;
 
 if (!URL || !CLE) {
   console.error(
@@ -72,6 +74,15 @@ if (!URL || !CLE) {
 
 const db = createClient(URL, CLE, { auth: { persistSession: false } });
 
+/**
+ * En-tête de cache actuel de chaque fichier, relevé pendant le listage.
+ *
+ * Supabase le renvoie dans `metadata.cacheControl`. Le lire ici évite
+ * une requête par photo, et permet de ne réécrire que celles qui en ont
+ * réellement besoin.
+ */
+const fichierMeta = new Map();
+
 /** Le stockage range les photos par dossier d'utilisateur. */
 async function listerToutesLesPhotos() {
   const fichiers = [];
@@ -83,14 +94,22 @@ async function listerToutesLesPhotos() {
 
   for (const d of dossiers ?? []) {
     // Les entrées sans `id` sont des dossiers.
-    if (d.id) { fichiers.push(d.name); continue; }
+    if (d.id) {
+      fichiers.push(d.name);
+      fichierMeta.set(d.name, d.metadata?.cacheControl ?? "");
+      continue;
+    }
     if (d.name === PREFIXE_SAUVEGARDE) continue;   // ne pas retraiter les sauvegardes
 
     const { data: dedans } = await db.storage
       .from(BUCKET).list(d.name, { limit: 10_000 });
 
     for (const f of dedans ?? []) {
-      if (f.id) fichiers.push(`${d.name}/${f.name}`);
+      if (f.id) {
+        const chemin = `${d.name}/${f.name}`;
+        fichiers.push(chemin);
+        fichierMeta.set(chemin, f.metadata?.cacheControl ?? "");
+      }
     }
   }
 
@@ -111,7 +130,7 @@ async function main() {
   const chemins = await listerToutesLesPhotos();
   console.log(`  ${chemins.length} fichier(s) trouvé(s)\n`);
 
-  let traites = 0, ignores = 0, echecs = 0;
+  let traites = 0, ignores = 0, echecs = 0, recaches = 0;
   let avant = 0, apres = 0;
 
   for (const chemin of chemins) {
@@ -124,7 +143,33 @@ async function main() {
 
       const grandCote = Math.max(meta.width ?? 0, meta.height ?? 0);
       if (grandCote <= LARGEUR_MAX && original.length < SEUIL_OCTETS) {
-        ignores++;
+        // Déjà légère — mais peut-être pas correctement mise en cache.
+        //
+        // `cacheControl` est figé au moment de l'envoi. Les photos
+        // compressées par une exécution ANTÉRIEURE de ce script portent
+        // encore le défaut de Supabase : une heure. Chaque membre les
+        // re-télécharge donc toutes les heures, ce qui coûte plus cher
+        // en bande passante que leur poids lui-même.
+        //
+        // On les réécrit à l'identique, uniquement pour corriger
+        // l'en-tête. Aucune recompression : les octets sont ceux
+        // d'origine, la qualité ne bouge pas d'un pixel.
+        const cacheActuel = fichierMeta.get(chemin) || "";
+        if (!APPLIQUER || cacheActuel.includes(String(CACHE_SECONDES))) {
+          ignores++;
+          continue;
+        }
+
+        const { error: eCache } = await db.storage
+          .from(BUCKET)
+          .upload(chemin, original, {
+            contentType: blob.type || "image/jpeg",
+            cacheControl: String(CACHE_SECONDES),
+            upsert: true,
+          });
+
+        if (eCache) { echecs++; console.log(`      x ${chemin} — cache : ${eCache.message}`); }
+        else { recaches++; console.log(`  ~ ${chemin} — cache 1 h -> 1 an`); }
         continue;
       }
 
@@ -175,6 +220,11 @@ async function main() {
           .from(BUCKET)
           .upload(chemin, compresse, {
             contentType: "image/jpeg",
+            // Un an. Ce script est le SEUL moyen de corriger l'en-tête de
+            // cache des photos déjà en ligne : `cacheControl` est figé au
+            // moment de l'envoi, changer le code de l'application ne
+            // touche que les envois à venir.
+            cacheControl: "31536000",
             upsert: true,          // même chemin : les URL en base restent valides
           });
 
@@ -191,7 +241,9 @@ async function main() {
   const gain = avant > 0 ? Math.round((1 - apres / avant) * 100) : 0;
 
   console.log(
-    `\n  ${traites} traitée(s) · ${ignores} déjà légère(s) · ${echecs} échec(s)\n` +
+    `
+  ${traites} compressée(s) · ${recaches} recachée(s) · ${ignores} inchangée(s) · ${echecs} échec(s)
+` +
     `  ${ko(avant)} → ${ko(apres)}   soit ${gain} % de moins\n` +
     (APPLIQUER
       ? `  Originaux conservés dans « ${PREFIXE_SAUVEGARDE}/ ».\n` +

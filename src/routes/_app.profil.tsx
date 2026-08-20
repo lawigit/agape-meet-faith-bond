@@ -222,7 +222,14 @@ function ProfilePage() {
 
       const { error: uploadError } = await supabase.storage
         .from('photos')
-        .upload(filePath, compressee, { contentType: compressee.type });
+        .upload(filePath, compressee, {
+          // Un an. Le chemin contient `Date.now()` : ce fichier ne
+          // changera JAMAIS de contenu. Le défaut de Supabase est une
+          // heure — chaque membre re-téléchargeait donc les mêmes
+          // visages toutes les heures, ce qui a fait exploser l'egress.
+          cacheControl: "31536000",
+          contentType: compressee.type,
+        });
         
       if (uploadError) throw uploadError;
 
