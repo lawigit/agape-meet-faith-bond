@@ -45,6 +45,7 @@ function ProfilePage() {
     first_name: "",
     last_name: "",
     bio: "",
+    profession: "",
     city: "",
     country: "",
     birth_date: "",
@@ -92,7 +93,7 @@ function ProfilePage() {
       const { data } = await supabase
         .from('profiles')
         .select(
-          'id, first_name, last_name, bio, city, country, birth_date, gender, ' +
+          'id, first_name, last_name, bio, profession, city, country, birth_date, gender, ' +
           'denomination, practice_level, baptized, church_attendance, ' +
           'seeking_gender, marriage_intent, has_children, wants_children, photos, ' +
           'marital_status, marriage_vision, looking_for, education, height_cm, ' +
@@ -105,6 +106,7 @@ function ProfilePage() {
           first_name: data.first_name || "",
           last_name: data.last_name || "",
           bio: data.bio || "",
+          profession: data.profession || "",
           city: data.city || "",
           country: data.country || "",
           birth_date: data.birth_date || "",
@@ -150,6 +152,7 @@ function ProfilePage() {
         first_name: form.first_name,
         last_name: form.last_name,
         bio: form.bio,
+        profession: form.profession.trim() || null,
         city: form.city,
         country: form.country,
         birth_date: form.birth_date,
@@ -595,6 +598,18 @@ function ProfilePage() {
         {/* À PROPOS */}
         <div className="space-y-4">
           <h3 className="font-serif text-lg font-medium text-primary">À propos de moi</h3>
+          <div>
+            <label className="block text-xs font-semibold mb-1.5 text-muted-foreground">
+              Profession
+            </label>
+            <Input
+              value={form.profession}
+              maxLength={80}
+              onChange={(e) => setForm({ ...form, profession: e.target.value })}
+              className="rounded-xl"
+              placeholder="Enseignante, commerçant, infirmier, étudiant..."
+            />
+          </div>
           <div>
             <Textarea 
               value={form.bio}

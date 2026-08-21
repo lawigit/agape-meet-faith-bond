@@ -239,27 +239,16 @@ export function MesDemandes() {
         }))}
       />
 
-      <BlocAvatars
-        titre="Super Likes"
-        icone={Star}
-        verrouille={superVerrouille}
-        vide="Aucun Super Like reçu pour l'instant."
-        cta="Voir vos Super Likes"
-        personnes={superlikes.map(l => ({
-          cle: l.id,
-          photo: l.profile?.photos?.[0],
-          prenom: l.profile?.first_name,
-        }))}
-      >
-        <Grille>
-          {superlikes.map((l, i) => (
-            <CarteLike key={l.id} entry={l} delai={i * 0.03}
-                       onAccepter={accepter} onRefuser={refuser}
-                       onBloquer={bloquer}
-                       onSignaler={() => setSignaler({ id: l.swiper_id, name: l.profile?.first_name })} />
-          ))}
-        </Grille>
-      </BlocAvatars>
+      {/* La rubrique « Super Likes » a été retirée de l'accueil.
+          Le Super Like n'a plus AUCUN moyen d'être envoyé : son bouton a
+          quitté la barre d'action de /decouvrir, et le balayage de la
+          carte a été supprimé à son tour. Annoncer « Aucun Super Like
+          reçu pour l'instant » entretenait donc l'attente d'une chose
+          qui ne peut plus arriver.
+
+          Les données restent intactes : `superlikes` continue d'être
+          chargé, et les Super Likes déjà reçus sont toujours en base. Le
+          jour où l'envoi revient, il suffira de remettre ce bloc. */}
 
       <BlocAvatars
         titre="Visiteurs"

@@ -45,7 +45,7 @@ import {
  */
 
 const COLONNES =
-  "id, first_name, last_name, bio, city, country, birth_date, photos, is_verified, " +
+  "id, first_name, last_name, bio, profession, city, country, birth_date, photos, is_verified, " +
   "denomination, practice_level, baptized, church_attendance, " +
   "marriage_intent, has_children, wants_children, " +
   "marital_status, marriage_vision, looking_for, education, height_cm, " +
@@ -177,6 +177,13 @@ export function FicheProfil({ userId, onClose }: { userId: string; onClose: () =
                   {p.is_verified && <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />}
                   <PlanBadge profile={p} compact />
                 </h2>
+                {/* La profession sous le nom, avant la ville : c'est ce
+                    qu'on lit en second sur une fiche, et cela donne de
+                    quoi engager la conversation autrement que par
+                    « ça va ? ». */}
+                {p.profession?.trim() && (
+                  <p className="text-sm font-medium mt-1 truncate">{p.profession}</p>
+                )}
                 {(p.city || p.country) && (
                   <p className="text-sm text-muted-foreground flex items-center gap-1.5 mt-1">
                     <MapPin className="w-3.5 h-3.5 shrink-0" />

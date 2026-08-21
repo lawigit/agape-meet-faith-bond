@@ -101,6 +101,7 @@ type OnboardingData = {
   gender: string;
   city: string;
   country: string;
+  profession: string;
   bio: string;
   denomination: string;
   practiceLevel: string;
@@ -120,6 +121,7 @@ const initialData: OnboardingData = {
   gender: "",
   city: "",
   country: "",
+  profession: "",
   bio: "",
   denomination: "",
   practiceLevel: "",
@@ -220,6 +222,7 @@ function OnboardingPage() {
         data.gender !== "" &&
         data.city.trim().length >= 2 &&
         data.country !== "" &&
+        data.profession.trim().length >= 2 &&
         data.bio.trim().length >= 10
       );
     }
@@ -244,11 +247,58 @@ function OnboardingPage() {
     return false;
   }, [step, data]);
 
+  /**
+   * Le premier champ qui manque, nommé.
+   *
+   * « Veuillez compléter tous les champs requis » envoie chercher parmi
+   * sept champs répartis sur deux colonnes, sans dire lequel. On finit
+   * par tout relire, ou par abandonner. Nommer le champ transforme une
+   * chasse en un geste.
+   *
+   * L'ordre suit celui de l'écran : le premier manquant est aussi le
+   * plus haut, donc celui qu'on trouve en levant les yeux.
+   */
+  const champManquant = useMemo((): string | null => {
+    if (step === 1) {
+      if (!data.birthDate) return "votre date de naissance";
+      const birth = new Date(data.birthDate);
+      const today = new Date();
+      const age = today.getFullYear() - birth.getFullYear();
+      const m = today.getMonth() - birth.getMonth();
+      const majeur = age > 18 || (age === 18 && m >= 0 && (m > 0 || today.getDate() >= birth.getDate()));
+      if (!majeur) return "une date de naissance : l'inscription est réservée aux majeurs";
+      if (!data.gender) return "votre genre";
+      if (!data.country) return "votre pays";
+      if (data.city.trim().length < 2) return "votre ville";
+      if (data.profession.trim().length < 2) return "votre profession";
+      if (data.bio.trim().length < 10) return "une présentation d'au moins dix caractères";
+    }
+    if (step === 2) {
+      if (!data.denomination.trim()) return "votre confession";
+      if (!data.practiceLevel) return "votre niveau de pratique";
+      if (!data.baptized) return "si vous êtes baptisé(e)";
+      if (!data.churchAttendance) return "votre fréquentation de l'église";
+    }
+    if (step === 3) {
+      if (!data.seekingGender) return "qui vous recherchez";
+      if (!data.maritalStatus) return "votre situation matrimoniale";
+      if (!data.marriageIntent) return "votre intention de mariage";
+      if (!data.hasChildren) return "si vous avez des enfants";
+      if (!data.wantsChildren) return "si vous voulez des enfants";
+    }
+    if (step === 4 && data.photos.length < 1) return "au moins une photo";
+    return null;
+  }, [step, data]);
+
   const progress = (step / steps.length) * 100;
 
   const handleNext = async () => {
     if (!canNext) {
-      toast.error("Veuillez compléter tous les champs requis");
+      toast.error(
+        champManquant
+          ? "Il manque " + champManquant + "."
+          : "Veuillez compléter tous les champs requis",
+      );
       return;
     }
     if (step < 4) {
@@ -371,6 +421,7 @@ function OnboardingPage() {
           gender: data.gender,
           city: data.city,
           country: data.country,
+          profession: data.profession.trim(),
           bio: data.bio,
           denomination: data.denomination.trim(),
           practice_level: data.practiceLevel,
@@ -656,6 +707,30 @@ function StepProfile({
             onChange={(v) => update("city", v)}
           />
         </Field>
+        <div className="sm:col-span-2">
+          {/* Avant la présentation, et non après : c'est une question
+              facile, à réponse courte. Elle met en train avant le champ
+              libre de 500 caractères, qui est le vrai effort de cette
+              étape.
+
+              Obligatoire, et le libellé le dit. Un champ exigé mais
+              annoncé comme facultatif bloque le bouton « Continuer »
+              sans que rien n'explique pourquoi — c'est la façon la plus
+              sûre de faire abandonner quelqu'un à la première étape.
+
+              Le placeholder inclut « étudiant » et « en recherche » :
+              rendre le champ obligatoire ne doit pas mettre en peine
+              celui qui n'a pas d'emploi. */}
+          <Field label="Profession" htmlFor="profession">
+            <Input
+              id="profession"
+              maxLength={80}
+              value={data.profession}
+              onChange={(e) => update("profession", e.target.value)}
+              placeholder="Enseignante, commerçant, infirmier, étudiant, en recherche..."
+            />
+          </Field>
+        </div>
         <div className="sm:col-span-2">
           <Field label="Présentation" htmlFor="bio">
             <Textarea
