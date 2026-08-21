@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import { X, Lock, MapPin, Crown, RotateCcw, Loader2, Check } from "lucide-react";
+import { SelecteurPays } from "@/components/app/SelecteurPays";
 import { toast } from "sonner";
 import { useNavigate } from "@tanstack/react-router";
 import {
@@ -117,20 +118,21 @@ export function FilterSheet({
           {/* ── Base, ouverte à tous ────────────────────────── */}
           <Section title="Filtres de base">
             <Row label="Pays">
-              <select
-                value={draft.country}
-                onChange={e => set("country", e.target.value)}
-                className="w-full h-11 px-3 rounded-xl border border-input bg-background text-sm"
-              >
-                <option value="">Tous les pays</option>
-                {(options?.pays ?? []).map(p => (
-                  <option key={p.valeur} value={p.valeur}>
-                    {p.valeur} ({p.n})
-                  </option>
-                ))}
-              </select>
+              {/* Tous les pays du monde, pas seulement ceux où quelqu'un
+                  est déjà inscrit. L'ancienne liste disait à qui cherchait
+                  au Nigeria ou aux Émirats que ces pays n'existaient pas —
+                  alors qu'une seule inscription les y aurait fait
+                  apparaître le lendemain.
+
+                  Les compteurs restent : ils évitent de filtrer sur un pays
+                  vide et d'en conclure que l'application ne sert à rien. */}
+              <SelecteurPays
+                valeur={draft.country}
+                comptes={options?.pays}
+                onChange={v => set("country", v)}
+              />
               <p className="text-[11px] text-muted-foreground mt-1">
-                Le nombre entre parenthèses indique les membres inscrits.
+                Les pays où des membres sont déjà inscrits apparaissent en premier.
               </p>
             </Row>
 
