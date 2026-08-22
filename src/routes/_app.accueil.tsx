@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Sparkles, Crown, UserPlus, ArrowRight, Eye, BookOpen, Compass, Pause, Users, HeartHandshake, X, CheckCircle2, Church } from "lucide-react";
+import { Sparkles, Crown, UserPlus, ArrowRight, Eye, BookOpen, Compass, Pause, Users, HeartHandshake, X, CheckCircle2, Church, Play } from "lucide-react";
 import { ProfileCard } from "@/components/app/ProfileCard";
 import { supabase } from "@/lib/supabase";
 import { getCurrentUser } from "@/lib/auth";
@@ -19,7 +19,6 @@ import { useNavigate } from "@tanstack/react-router";
 import { Lock } from "lucide-react";
 import { publicPlanOf } from "@/lib/badges";
 import { MesDemandes } from "@/components/app/MesDemandes";
-import { VideoGuide } from "@/components/app/VideoGuide";
 import { GuideEcran } from "@/components/app/GuideEcran";
 
 export const Route = createFileRoute("/_app/accueil")({
@@ -35,21 +34,7 @@ export const Route = createFileRoute("/_app/accueil")({
 
 type Section = { title: string; icon: typeof Sparkles; data: Profile[]; hue?: string };
 
-/** Vidéo déjà écartée : la clé porte un numéro de version, pour
- *  pouvoir la remontrer si l'on tourne une nouvelle vidéo. */
-const CLE_VIDEO = "agape_video_guide_v1";
-
 function HomePage() {
-  const [videoVue, setVideoVue] = useState(true);
-
-  // `true` par défaut, puis relâché après lecture du stockage : afficher
-  // la carte pendant une image avant de la retirer produirait un
-  // clignotement à chaque ouverture pour ceux qui l'ont déjà fermée.
-  useEffect(() => {
-    try { setVideoVue(localStorage.getItem(CLE_VIDEO) === "1"); }
-    catch { setVideoVue(false); }
-  }, []);
-
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -273,19 +258,44 @@ function HomePage() {
     <div className="pt-4">
       <GuideEcran ecran="accueil" />
 
-      {/* La vidéo d'explication, en haut et une seule fois.
-          Ici elle s'adresse à celui qui vient d'arriver et ne sait pas
-          par où commencer — d'où la croix : une fois vue, elle n'a plus
-          rien à dire et occuperait la moitié de l'écran pour rien.
-          La version permanente vit dans /communaute. */}
-      {!videoVue && (
-        <div className="mx-4">
-          <VideoGuide onFermer={() => {
-            setVideoVue(true);
-            try { localStorage.setItem(CLE_VIDEO, "1"); } catch { /* navigation privée */ }
-          }} />
-        </div>
-      )}
+      {/* Un bouton, pas la vidéo.
+          La vidéo elle-même vit dans /communaute ; l'afficher AUSSI ici
+          la ferait charger deux fois et occuperait le haut de l'écran
+          principal. Ce bouton pose la question que les membres écrivent
+          mot pour mot au support — « comment trouver mon âme sœur ? » —
+          et mène là où se trouve la réponse.
+
+          PERMANENT, et volontairement. Le faire disparaître après un
+          clic supposerait qu'un clic vaut compréhension — or on ouvre
+          souvent une vidéo, on la referme, et on revient trois jours
+          plus tard avec la même question. Tant que 103 membres sur 149
+          n'ont jamais rien tenté, cette porte reste ouverte.
+
+          Il clignote parce que c'est le seul élément de cette page qui
+          s'adresse à quelqu'un qui ne sait pas encore quoi faire. */}
+      <div className="mx-4 mb-3">
+          <Link
+            to="/communaute"
+            className="relative block w-full rounded-2xl bg-gradient-to-r from-primary to-primary/85
+                       text-primary-foreground px-4 py-3.5 shadow-elegant overflow-hidden
+                       animate-pulse-doux active:scale-[0.99] transition-transform"
+          >
+            <span className="flex items-center gap-3">
+              <span className="w-9 h-9 rounded-full bg-white/20 grid place-items-center shrink-0">
+                <Play className="w-4 h-4 ml-0.5" fill="currentColor" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-bold leading-snug">
+                  Comment trouver son âme sœur ?
+                </span>
+                <span className="block text-xs opacity-85 mt-0.5">
+                  La vidéo qui explique tout, en trois minutes
+                </span>
+              </span>
+              <ArrowRight className="w-4 h-4 shrink-0" />
+            </span>
+          </Link>
+      </div>
 
       {/* Rappel : sans ça, on oublie qu'on est masqué et on s'étonne du silence */}
       {visibility !== "tous" && !loading && (

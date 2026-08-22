@@ -238,3 +238,31 @@
     display: none;
   }
 }
+
+/* ─────────────────────────────────────────────────────────────
+   Halo pulsé — le bouton « Comment trouver son âme sœur ? »
+
+   `animate-pulse` de Tailwind fait varier l'OPACITÉ de l'élément
+   entier : sur un bouton coloré, le texte devient illisible une
+   fois sur deux. Ici c'est une onde qui s'écarte du bord, façon
+   goutte d'eau : l'œil est attiré, le texte reste net.
+
+   2,2 s : assez lent pour ne pas agacer, assez présent pour être
+   remarqué par quelqu'un qui parcourt l'écran sans savoir quoi y
+   faire.
+   ───────────────────────────────────────────────────────────── */
+@keyframes pulse-doux {
+  0%, 100% { box-shadow: 0 0 0 0 hsl(var(--primary) / 0.5); }
+  70%      { box-shadow: 0 0 0 14px hsl(var(--primary) / 0); }
+}
+
+.animate-pulse-doux {
+  animation: pulse-doux 2.2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Une animation qui ne s'arrête jamais peut déclencher malaise ou
+   migraine. Le système le signale, on l'écoute — le bouton reste
+   parfaitement visible sans son halo. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-pulse-doux { animation: none; }
+}
