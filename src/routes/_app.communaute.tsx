@@ -26,6 +26,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { PlanBadge } from "@/components/app/PlanBadge";
 import { Avatar } from "@/components/app/Avatar";
 import { FicheProfil } from "@/components/app/FicheProfil";
+import { VideoGuide } from "@/components/app/VideoGuide";
 import { PanneauPremium } from "@/components/app/PanneauPremium";
 import { limite, limiteDepuisErreur, type ContenuLimite } from "@/lib/limites";
 import { markCommunityRead } from "@/lib/badgesNav";
@@ -1021,6 +1022,13 @@ function CommunityPage() {
           )}
         </div>
       </div>
+
+      {/* Juste après le défi, et PERMANENTE : ici, elle n'est pas un
+          rappel qu'on écarte une fois pour toutes, mais une référence
+          qu'on retrouve. Quelqu'un qui a fermé la carte de l'accueil il
+          y a trois semaines et qui bute aujourd'hui doit pouvoir la
+          revoir sans écrire au support. */}
+      <VideoGuide />
 
       {/* Testimonials couples */}
       <div className="mb-5">

@@ -19,6 +19,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { Lock } from "lucide-react";
 import { publicPlanOf } from "@/lib/badges";
 import { MesDemandes } from "@/components/app/MesDemandes";
+import { VideoGuide } from "@/components/app/VideoGuide";
 import { GuideEcran } from "@/components/app/GuideEcran";
 
 export const Route = createFileRoute("/_app/accueil")({
@@ -34,7 +35,21 @@ export const Route = createFileRoute("/_app/accueil")({
 
 type Section = { title: string; icon: typeof Sparkles; data: Profile[]; hue?: string };
 
+/** Vidéo déjà écartée : la clé porte un numéro de version, pour
+ *  pouvoir la remontrer si l'on tourne une nouvelle vidéo. */
+const CLE_VIDEO = "agape_video_guide_v1";
+
 function HomePage() {
+  const [videoVue, setVideoVue] = useState(true);
+
+  // `true` par défaut, puis relâché après lecture du stockage : afficher
+  // la carte pendant une image avant de la retirer produirait un
+  // clignotement à chaque ouverture pour ceux qui l'ont déjà fermée.
+  useEffect(() => {
+    try { setVideoVue(localStorage.getItem(CLE_VIDEO) === "1"); }
+    catch { setVideoVue(false); }
+  }, []);
+
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -257,6 +272,20 @@ function HomePage() {
   return (
     <div className="pt-4">
       <GuideEcran ecran="accueil" />
+
+      {/* La vidéo d'explication, en haut et une seule fois.
+          Ici elle s'adresse à celui qui vient d'arriver et ne sait pas
+          par où commencer — d'où la croix : une fois vue, elle n'a plus
+          rien à dire et occuperait la moitié de l'écran pour rien.
+          La version permanente vit dans /communaute. */}
+      {!videoVue && (
+        <div className="mx-4">
+          <VideoGuide onFermer={() => {
+            setVideoVue(true);
+            try { localStorage.setItem(CLE_VIDEO, "1"); } catch { /* navigation privée */ }
+          }} />
+        </div>
+      )}
 
       {/* Rappel : sans ça, on oublie qu'on est masqué et on s'étonne du silence */}
       {visibility !== "tous" && !loading && (
