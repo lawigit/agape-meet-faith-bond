@@ -251,9 +251,24 @@
    remarqué par quelqu'un qui parcourt l'écran sans savoir quoi y
    faire.
    ───────────────────────────────────────────────────────────── */
+/* `color-mix` et non `hsl(var(--primary) / .5)` : dans ce projet
+   --primary est une fonction de couleur COMPLÈTE — oklch(0.35 0.13 265) —
+   et non des canaux bruts à la mode Tailwind. L'envelopper dans hsl()
+   produisait du CSS invalide, silencieusement ignoré : pas d'ombre, pas
+   de halo, et aucune erreur pour le dire.
+
+   La première déclaration est un repli pour les navigateurs sans
+   color-mix ; la seconde la remplace partout ailleurs et suit le thème,
+   clair comme sombre. */
 @keyframes pulse-doux {
-  0%, 100% { box-shadow: 0 0 0 0 hsl(var(--primary) / 0.5); }
-  70%      { box-shadow: 0 0 0 14px hsl(var(--primary) / 0); }
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(45, 55, 130, 0.5);
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--primary) 50%, transparent);
+  }
+  70% {
+    box-shadow: 0 0 0 14px rgba(45, 55, 130, 0);
+    box-shadow: 0 0 0 14px color-mix(in oklab, var(--primary) 0%, transparent);
+  }
 }
 
 .animate-pulse-doux {
