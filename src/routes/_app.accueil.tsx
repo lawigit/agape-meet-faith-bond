@@ -289,7 +289,7 @@ function HomePage() {
                   Comment trouver son âme sœur ?
                 </span>
                 <span className="block text-xs opacity-85 mt-0.5">
-                  La vidéo qui explique tout, en trois minutes
+                  La vidéo qui explique tout, en quelques minutes
                 </span>
               </span>
               <ArrowRight className="w-4 h-4 shrink-0" />

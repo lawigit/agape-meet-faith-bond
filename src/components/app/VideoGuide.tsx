@@ -41,7 +41,7 @@ function idVideo(url: string): string | null {
 
 export function VideoGuide({
   titre = "Comment utiliser AgapeMeet",
-  sousTitre = "Trois minutes pour tout comprendre",
+  sousTitre = "Quelques minutes pour tout comprendre",
   onFermer,
 }: {
   titre?: string;
